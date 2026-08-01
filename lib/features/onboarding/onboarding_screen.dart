@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/colors.dart';
+import '../../core/theme/constants.dart';
+import '../../core/widgets/primary_button.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -13,27 +16,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentPage = 0;
 
-  final List<Map<String, String>> _onboardingData = [
+  final List<Map<String, dynamic>> _onboardingData = [
     {
-      'title': 'Welcome to DOOM OTT',
+      'title': 'Unlimited Movies & Shows',
       'description':
-          'Experience movies, TV shows, and anime in stunning 4K HDR quality, completely customizable to your viewing habits.',
-      'image':
-          'https://images.unsplash.com/photo-1574267431629-2e570984a833?q=80&w=600&auto=format&fit=crop',
+          'Watch thousands of blockbusters, TV series, anime, and documentaries in glorious 4K resolution.',
+      'icon': LucideIcons.playCircle,
+      'color': Colors.redAccent,
     },
     {
-      'title': 'Offline Watchlist Cache',
+      'title': 'Watch Anywhere, Anytime',
       'description':
-          'Add items to your watchlist. Keep track of what you are currently watching and continue right where you left off, even offline.',
-      'image':
-          'https://images.unsplash.com/photo-1593305841991-05c297ba4575?q=80&w=600&auto=format&fit=crop',
+          'Stream effortlessly on your phone, tablet, laptop, or TV without any buffering or limits.',
+      'icon': LucideIcons.smartphone,
+      'color': Colors.blueAccent,
     },
     {
-      'title': 'Exclusive Premium Plans',
+      'title': "Original Content You Won't Find Elsewhere",
       'description':
-          'Subscribe to our VIP tier for premium sound, multi-device support, and high definition streams without any interruptions.',
-      'image':
-          'https://images.unsplash.com/photo-1517604931442-7e0c8ed2963c?q=80&w=600&auto=format&fit=crop',
+          'Enjoy exclusive productions, creator shows, and cinematic originals available only on Doom.',
+      'icon': LucideIcons.award,
+      'color': Colors.amberAccent,
     },
   ];
 
@@ -46,10 +49,10 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: Colors.black, // Background: #000000
       body: Stack(
         children: [
-          // Slides
+          // Swipeable Pages
           PageView.builder(
             controller: _pageController,
             onPageChanged: (index) {
@@ -59,160 +62,166 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
             },
             itemCount: _onboardingData.length,
             itemBuilder: (context, index) {
-              return Stack(
-                fit: StackFit.expand,
-                children: [
-                  // Background image with dark gradient overlay
-                  Image.network(
-                    _onboardingData[index]['image']!,
-                    fit: BoxFit.cover,
-                    loadingBuilder: (context, child, loadingProgress) {
-                      if (loadingProgress == null) return child;
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
+              final item = _onboardingData[index];
+              return Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24.0,
+                  vertical: 80.0,
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Placeholder illustration container
+                    // TODO: Swap in final client-provided graphic/illustration assets here
+                    Container(
+                      width: 200,
+                      height: 200,
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(
+                          AppThemeConstants.radiusCard,
                         ),
-                      );
-                    },
-                    errorBuilder: (context, error, stackTrace) =>
-                        Container(color: AppColors.surface),
-                  ),
-                  Container(
-                    decoration: const BoxDecoration(
-                      gradient: LinearGradient(
-                        colors: [
-                          Colors.transparent,
-                          Colors.black87,
-                          Colors.black,
-                        ],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                        stops: [0.0, 0.6, 1.0],
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Center(
+                        child: Icon(
+                          item['icon'] as IconData,
+                          size: 72,
+                          color: item['color'] as Color,
+                        ),
                       ),
                     ),
-                  ),
-                  // Texts
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 24.0,
-                      vertical: 80.0,
+                    const SizedBox(height: 48),
+                    Text(
+                      item['title']!,
+                      style: Theme.of(context).textTheme.headlineMedium
+                          ?.copyWith(
+                            fontWeight: FontWeight.w900,
+                            color: Colors.white,
+                          ),
+                      textAlign: TextAlign.center,
                     ),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          _onboardingData[index]['title']!,
-                          style: Theme.of(context).textTheme.headlineLarge
-                              ?.copyWith(
-                                fontWeight: FontWeight.w900,
-                                color: AppColors.onBackground,
-                              ),
-                        ),
-                        const SizedBox(height: 16),
-                        Text(
-                          _onboardingData[index]['description']!,
-                          style: Theme.of(context).textTheme.bodyLarge
-                              ?.copyWith(color: AppColors.muted),
-                        ),
-                        const SizedBox(height: 120),
-                      ],
+                    const SizedBox(height: 16),
+                    Text(
+                      item['description']!,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: AppColors.muted,
+                        height: 1.5,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               );
             },
           ),
 
-          // Top Header
+          // Skip Button in top-right
           Positioned(
-            top: 60,
-            left: 24,
-            right: 24,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text(
-                  'DOOM',
-                  style: TextStyle(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primary,
-                  ),
+            top: 50,
+            right: 20,
+            child: TextButton(
+              onPressed: () => context.go('/auth'),
+              child: const Text(
+                'Skip',
+                style: TextStyle(
+                  color: AppColors.secondary, // #C0C0C0
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
-                TextButton(
-                  onPressed: () => context.go('/auth'),
-                  child: const Text(
-                    'Skip',
-                    style: TextStyle(
-                      color: AppColors.onBackground,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
 
-          // Bottom actions
+          // Bottom Bar containing indicators and actions
           Positioned(
             bottom: 40,
             left: 24,
             right: 24,
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
               children: [
-                // Dots indicator
+                // Indicators Row
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   children: List.generate(
                     _onboardingData.length,
                     (index) => Container(
-                      margin: const EdgeInsets.only(right: 6),
+                      margin: const EdgeInsets.symmetric(horizontal: 4),
                       width: _currentPage == index ? 24 : 8,
                       height: 8,
                       decoration: BoxDecoration(
                         color: _currentPage == index
                             ? AppColors.primary
-                            : Colors.grey,
+                            : AppColors.secondary,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
                   ),
                 ),
+                const SizedBox(height: 32),
 
-                // Next or Get Started Button
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.background,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(30),
-                    ),
-                  ),
-                  onPressed: () {
-                    if (_currentPage == _onboardingData.length - 1) {
+                // Button controls
+                if (_currentPage == _onboardingData.length - 1)
+                  PrimaryButton(
+                    label: 'Get Started',
+                    onPressed: () {
                       context.go('/auth');
-                    } else {
-                      _pageController.nextPage(
-                        duration: const Duration(milliseconds: 300),
-                        curve: Curves.easeIn,
-                      );
-                    }
-                  },
-                  child: Text(
-                    _currentPage == _onboardingData.length - 1
-                        ? 'Get Started'
-                        : 'Next',
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
+                    },
+                  )
+                else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Back Text Button
+                      TextButton(
+                        onPressed: _currentPage == 0
+                            ? null
+                            : () {
+                                _pageController.previousPage(
+                                  duration: const Duration(milliseconds: 300),
+                                  curve: Curves.easeInOut,
+                                );
+                              },
+                        child: Text(
+                          'Back',
+                          style: TextStyle(
+                            color: _currentPage == 0
+                                ? Colors.transparent
+                                : AppColors.secondary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                      // Next Button
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.surface,
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(color: Colors.white10),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(
+                              AppThemeConstants.radiusButton,
+                            ),
+                          ),
+                        ),
+                        onPressed: () {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 300),
+                            curve: Curves.easeInOut,
+                          );
+                        },
+                        child: const Text(
+                          'Next',
+                          style: TextStyle(fontWeight: FontWeight.bold),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
               ],
             ),
           ),

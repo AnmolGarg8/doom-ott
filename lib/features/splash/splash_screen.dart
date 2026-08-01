@@ -1,9 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../auth/bloc/auth_bloc.dart';
-import '../auth/bloc/auth_event.dart';
-import '../auth/bloc/auth_state.dart';
 import '../../core/theme/colors.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -16,6 +12,7 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late AnimationController _animationController;
+  late Animation<double> _fadeAnimation;
   late Animation<double> _scaleAnimation;
 
   @override
@@ -23,15 +20,38 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _animationController = AnimationController(
       vsync: this,
-      duration: const Duration(seconds: 2),
+      duration: const Duration(milliseconds: 1200),
     );
-    _scaleAnimation = Tween<double>(begin: 0.8, end: 1.2).animate(
-      CurvedAnimation(parent: _animationController, curve: Curves.easeInOut),
-    );
-    _animationController.repeat(reverse: true);
 
-    // Initial check
-    context.read<AuthBloc>().add(AppStarted());
+    _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeIn),
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
+      CurvedAnimation(parent: _animationController, curve: Curves.easeOutCubic),
+    );
+
+    _animationController.forward();
+
+    _navigateToNext();
+  }
+
+  void _navigateToNext() {
+    Future.delayed(const Duration(seconds: 2), () {
+      if (mounted) {
+        final router = GoRouter.of(context);
+        // TODO: Persisted auth state check goes here once backend/secure storage is connected.
+        // E.g.:
+        // final bool isLoggedIn = await authRepository.checkSession();
+        // if (isLoggedIn) {
+        //   router.go('/home');
+        // } else {
+        //   router.go('/onboarding');
+        // }
+        // For now, redirect to Onboarding on every launch.
+        router.go('/onboarding');
+      }
+    });
   }
 
   @override
@@ -42,51 +62,37 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return BlocListener<AuthBloc, AuthState>(
-      listener: (context, state) {
-        final router = GoRouter.of(context);
-        // Wait a bit to show logo splash
-        Future.delayed(const Duration(seconds: 2), () {
-          if (state is Authenticated) {
-            router.go('/home');
-          } else {
-            router.go('/onboarding');
-          }
-        });
-      },
-      child: Scaffold(
-        backgroundColor: AppColors.background,
-        body: Center(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              ScaleTransition(
-                scale: _scaleAnimation,
-                child: const Text(
+    return Scaffold(
+      backgroundColor: Colors.black, // Full black background (#000000)
+      body: Center(
+        child: FadeTransition(
+          opacity: _fadeAnimation,
+          child: ScaleTransition(
+            scale: _scaleAnimation,
+            child: const Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
                   'DOOM',
                   style: TextStyle(
                     fontSize: 64,
                     fontWeight: FontWeight.w900,
-                    color: AppColors.primary,
+                    color: AppColors.primary, // #FFB300 accent color
                     letterSpacing: 8,
                   ),
                 ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'STREAM DESTINY',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.muted,
-                  letterSpacing: 4,
+                SizedBox(height: 10),
+                Text(
+                  'STREAM DESTINY',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.muted,
+                    letterSpacing: 4,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 50),
-              const CircularProgressIndicator(
-                valueColor: AlwaysStoppedAnimation<Color>(AppColors.primary),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
