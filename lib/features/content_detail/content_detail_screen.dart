@@ -28,6 +28,8 @@ class ContentDetailScreen extends StatefulWidget {
 class _ContentDetailScreenState extends State<ContentDetailScreen> {
   bool _isSynopsisExpanded = false;
   String _selectedSeason = 'Season 1';
+  List<Map<String, dynamic>> _reviewsList = [];
+  double _averageRating = 4.5;
 
   final List<Map<String, String>> _cast = [
     {
@@ -69,6 +71,43 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
   void _loadContent() {
     context.read<ContentBloc>().add(LoadContentDetail(widget.contentId));
     context.read<WatchlistBloc>().add(LoadWatchlist());
+    _reviewsList = _getInitialReviews(widget.contentId);
+    _recalculateAverage();
+  }
+
+  List<Map<String, dynamic>> _getInitialReviews(String contentId) {
+    return [
+      {
+        'userName': 'Aarav Mehta',
+        'rating': 5,
+        'text':
+            'Absolutely stunning! The visual effects and sound design are top tier. A must watch on a large screen.',
+        'date': 'Aug 01, 2026',
+      },
+      {
+        'userName': 'Priya Sharma',
+        'rating': 4,
+        'text':
+            'Great storyline and acting. The pacing is a bit slow in the middle, but the climax makes up for it completely.',
+        'date': 'Jul 30, 2026',
+      },
+    ];
+  }
+
+  void _recalculateAverage() {
+    if (_reviewsList.isEmpty) {
+      setState(() {
+        _averageRating = 4.5;
+      });
+      return;
+    }
+    final total = _reviewsList.fold<double>(
+      0.0,
+      (sum, item) => sum + (item['rating'] as num).toDouble(),
+    );
+    setState(() {
+      _averageRating = total / _reviewsList.length;
+    });
   }
 
   List<Map<String, dynamic>> _getMockEpisodes(String contentId) {
@@ -132,6 +171,10 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
 
                         // 4. Cast Section
                         _buildCastSection(),
+                        const SizedBox(height: 24),
+
+                        // Reviews section
+                        _buildReviewsSection(content),
                         const SizedBox(height: 24),
 
                         // 5. Episode List (only if type == series)
@@ -238,9 +281,7 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
               // Metadata Row (Release Year, Duration/Episodes)
               Row(
                 children: [
-                  RatingBadge(
-                    rating: 7.0 + (int.tryParse(content.id) ?? 5) % 3 * 0.9,
-                  ),
+                  RatingBadge(rating: _averageRating),
                   const SizedBox(width: 8),
                   Container(
                     padding: const EdgeInsets.symmetric(
@@ -396,6 +437,19 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
                 ),
               );
             },
+          ),
+        ),
+        const SizedBox(width: 12),
+
+        // Rate Button
+        Container(
+          decoration: BoxDecoration(
+            border: Border.all(color: Colors.white30),
+            shape: BoxShape.circle,
+          ),
+          child: IconButton(
+            icon: const Icon(LucideIcons.star, color: Colors.white),
+            onPressed: () => _showRatingBottomSheet(context, content),
           ),
         ),
       ],
@@ -681,6 +735,237 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
             },
           ),
         ),
+      ],
+    );
+  }
+
+  void _showRatingBottomSheet(BuildContext context, ContentModel content) {
+    int selectedStars = 5;
+    final TextEditingController textController = TextEditingController();
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: AppColors.surface,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(16),
+          topRight: Radius.circular(16),
+        ),
+      ),
+      builder: (modalContext) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Padding(
+              padding: EdgeInsets.only(
+                left: 24,
+                right: 24,
+                top: 24,
+                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    'Rate "${content.title}"',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: List.generate(5, (index) {
+                      final starNum = index + 1;
+                      final isSelected = starNum <= selectedStars;
+                      return IconButton(
+                        icon: Icon(
+                          LucideIcons.star,
+                          color: isSelected
+                              ? AppColors.primary
+                              : Colors.white10,
+                          size: 32,
+                        ),
+                        onPressed: () {
+                          setModalState(() {
+                            selectedStars = starNum;
+                          });
+                        },
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 16),
+                  TextField(
+                    controller: textController,
+                    maxLines: 3,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: const InputDecoration(
+                      hintText: 'Write an optional review...',
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  PrimaryButton(
+                    label: 'Submit Rating',
+                    onPressed: () {
+                      final enteredText = textController.text.trim();
+                      setState(() {
+                        _reviewsList.insert(0, {
+                          'userName': 'You',
+                          'rating': selectedStars,
+                          'text': enteredText.isEmpty
+                              ? 'Outstanding streaming title!'
+                              : enteredText,
+                          'date': 'Just Now',
+                        });
+                        _recalculateAverage();
+                      });
+                      Navigator.pop(modalContext);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'Thank you! Your rating has been submitted.',
+                          ),
+                          backgroundColor: AppColors.primary,
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildReviewsSection(ContentModel content) {
+    final List<Color> avatarColors = const [
+      Colors.amber,
+      Colors.blue,
+      Colors.green,
+      Colors.purple,
+      Colors.red,
+      Colors.orange,
+    ];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Divider(color: Colors.white10, height: 32),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text(
+              'User Reviews',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 16,
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                context.push(
+                  '/reviews?id=${content.id}&title=${Uri.encodeComponent(content.title)}',
+                );
+              },
+              child: const Text(
+                'See All Reviews',
+                style: TextStyle(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        if (_reviewsList.isEmpty)
+          const Text(
+            'No reviews yet. Be the first to review!',
+            style: TextStyle(color: AppColors.muted, fontSize: 13),
+          )
+        else
+          ..._reviewsList.take(2).map((rev) {
+            final idx = _reviewsList.indexOf(rev);
+            final avatarColor = avatarColors[idx % avatarColors.length];
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 12,
+                            backgroundColor: avatarColor,
+                            child: Text(
+                              rev['userName']
+                                  .toString()
+                                  .substring(0, 1)
+                                  .toUpperCase(),
+                              style: const TextStyle(
+                                color: Colors.black,
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            rev['userName'] as String,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Text(
+                        rev['date'] as String,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 11,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: List.generate(5, (index) {
+                      return Icon(
+                        LucideIcons.star,
+                        color: index < (rev['rating'] as int)
+                            ? AppColors.primary
+                            : Colors.white10,
+                        size: 10,
+                      );
+                    }),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    rev['text'] as String,
+                    style: const TextStyle(color: Colors.white70, fontSize: 12),
+                  ),
+                ],
+              ),
+            );
+          }).toList(),
       ],
     );
   }

@@ -17,6 +17,8 @@ import '../../features/settings/settings_screen.dart';
 import '../../features/profile/profile_picker_screen.dart';
 import '../../features/profile/edit_profile_screen.dart';
 import '../../features/settings/notifications_screen.dart';
+import '../../features/profile/parental_controls_screen.dart';
+import '../../features/reviews/reviews_screen.dart';
 import '../../features/legal/legal_screen.dart';
 import '../../features/subscription/subscription_screen.dart';
 import '../../features/payment/payment_screen.dart';
@@ -218,6 +220,23 @@ class AppRouter {
         path: '/notifications',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const NotificationsScreen(),
+      ),
+      GoRoute(
+        path: '/parental-controls',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final id = state.uri.queryParameters['id'] ?? 'p_1';
+          return ParentalControlsScreen(profileId: id);
+        },
+      ),
+      GoRoute(
+        path: '/reviews',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final id = state.uri.queryParameters['id'] ?? '1';
+          final title = state.uri.queryParameters['title'] ?? 'Title';
+          return ReviewsScreen(contentId: id, contentTitle: title);
+        },
       ),
     ],
   );

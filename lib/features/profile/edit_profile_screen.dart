@@ -275,6 +275,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 });
               },
             ),
+            if (widget.profileId != null) ...[
+              const SizedBox(height: 16),
+              const Divider(color: Colors.white10),
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(
+                  LucideIcons.shieldAlert,
+                  color: AppColors.primary,
+                ),
+                title: const Text(
+                  'Parental Restrictions',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+                subtitle: const Text(
+                  'Maturity ratings and genre filters',
+                  style: TextStyle(color: AppColors.muted),
+                ),
+                trailing: const Icon(
+                  LucideIcons.chevronRight,
+                  color: AppColors.muted,
+                  size: 16,
+                ),
+                onTap: () {
+                  context.push('/parental-controls?id=${widget.profileId}');
+                },
+              ),
+              const Divider(color: Colors.white10),
+            ],
             const SizedBox(height: 40),
 
             // Save button
