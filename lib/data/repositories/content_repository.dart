@@ -1,3 +1,4 @@
+import 'package:hive/hive.dart';
 import '../models/content_model.dart';
 import '../mock/mock_data.dart';
 
@@ -36,10 +37,22 @@ class MockContentRepository implements ContentRepository {
   @override
   Future<List<ContentModel>> getContinueWatchingContent() async {
     await Future.delayed(const Duration(milliseconds: 500));
-    // Return items that have active progress
-    return MockData.allContent
-        .where((element) => element.progress != null)
-        .toList();
+    try {
+      final box = await Hive.openBox<ContentModel>('continue_watching');
+      if (box.isEmpty) {
+        final mockItems = MockData.allContent
+            .where((element) => element.progress != null)
+            .toList();
+        for (final item in mockItems) {
+          await box.put(item.id, item);
+        }
+      }
+      return box.values.toList();
+    } catch (_) {
+      return MockData.allContent
+          .where((element) => element.progress != null)
+          .toList();
+    }
   }
 
   @override

@@ -1,5 +1,6 @@
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/content_model.dart';
+import '../mock/mock_data.dart';
 
 abstract class WatchlistRepository {
   Future<List<ContentModel>> getWatchlist();
@@ -57,6 +58,14 @@ class HiveWatchlistRepository implements WatchlistRepository {
   Future<List<ContentModel>> getContinueWatching() async {
     try {
       final box = await _continueBox;
+      if (box.isEmpty) {
+        final mockItems = MockData.allContent
+            .where((element) => element.progress != null)
+            .toList();
+        for (final item in mockItems) {
+          await box.put(item.id, item);
+        }
+      }
       return box.values.toList();
     } catch (e) {
       // Malformed legacy data, clear the box to prevent screen crash
