@@ -104,10 +104,14 @@ class _BrowseScreenState extends State<BrowseScreen> {
                     checkmarkColor: Colors.black,
                     labelStyle: TextStyle(
                       color: isSelected ? Colors.black : Colors.white,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontWeight: isSelected
+                          ? FontWeight.bold
+                          : FontWeight.normal,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppThemeConstants.radiusChip),
+                      borderRadius: BorderRadius.circular(
+                        AppThemeConstants.radiusChip,
+                      ),
                     ),
                     onSelected: (selected) {
                       if (selected && genre != _selectedGenre) {
@@ -154,18 +158,20 @@ class _BrowseScreenState extends State<BrowseScreen> {
                           )
                         : GridView.builder(
                             padding: const EdgeInsets.all(16),
-                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: crossAxisCount,
-                              childAspectRatio: 2 / 3,
-                              crossAxisSpacing: 12,
-                              mainAxisSpacing: 12,
-                            ),
+                            gridDelegate:
+                                SliverGridDelegateWithFixedCrossAxisCount(
+                                  crossAxisCount: crossAxisCount,
+                                  childAspectRatio: 2 / 3,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
+                                ),
                             itemCount: _filteredContent.length,
                             itemBuilder: (context, index) {
                               final item = _filteredContent[index];
                               return ContentCard(
                                 content: item,
-                                onTap: () => context.push('/content-detail/${item.id}'),
+                                onTap: () =>
+                                    context.push('/content-detail/${item.id}'),
                               );
                             },
                           ),
