@@ -203,8 +203,8 @@ class _ProfilePickerScreenState extends State<ProfilePickerScreen> {
                                   boxShadow: [
                                     if (isCurrentActive && !widget.manageMode)
                                       BoxShadow(
-                                        color: AppColors.primary.withOpacity(
-                                          0.4,
+                                        color: AppColors.primary.withValues(
+                                          alpha: 0.4,
                                         ),
                                         blurRadius: 10,
                                         spreadRadius: 2,

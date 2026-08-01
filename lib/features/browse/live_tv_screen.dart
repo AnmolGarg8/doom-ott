@@ -1,3 +1,7 @@
+// NOTE: This screen was built ahead of schedule. Live TV/EPG is officially
+// a Phase 3 feature. Do not expand, refine, or connect this screen to real
+// data until explicitly instructed. Current state: static mock UI only.
+
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/colors.dart';

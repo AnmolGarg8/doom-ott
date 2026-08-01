@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:logger/logger.dart';
+
+final Logger logger = Logger();
 
 class DioClient {
   final Dio _dio;
@@ -74,22 +77,22 @@ class _AuthInterceptor extends Interceptor {
 class _LoggingInterceptor extends Interceptor {
   @override
   void onRequest(RequestOptions options, RequestInterceptorHandler handler) {
-    print('--> ${options.method} ${options.uri}');
-    print('Headers: ${options.headers}');
-    print('Data: ${options.data}');
+    logger.d('--> ${options.method} ${options.uri}');
+    logger.d('Headers: ${options.headers}');
+    logger.d('Data: ${options.data}');
     super.onRequest(options, handler);
   }
 
   @override
   void onResponse(Response response, ResponseInterceptorHandler handler) {
-    print('<-- ${response.statusCode} ${response.requestOptions.uri}');
-    print('Response Data: ${response.data}');
+    logger.d('<-- ${response.statusCode} ${response.requestOptions.uri}');
+    logger.d('Response Data: ${response.data}');
     super.onResponse(response, handler);
   }
 
   @override
   void onError(DioException err, ErrorInterceptorHandler handler) {
-    print('<-- ERROR: ${err.message} for ${err.requestOptions.uri}');
+    logger.e('<-- ERROR: ${err.message} for ${err.requestOptions.uri}');
     super.onError(err, handler);
   }
 }

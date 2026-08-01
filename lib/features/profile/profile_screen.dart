@@ -70,7 +70,7 @@ class ProfileScreen extends StatelessWidget {
                         ),
                         decoration: BoxDecoration(
                           color: user.isSubscribed
-                              ? AppColors.primary.withOpacity(0.2)
+                              ? AppColors.primary.withValues(alpha: 0.2)
                               : Colors.white10,
                           border: Border.all(
                             color: user.isSubscribed

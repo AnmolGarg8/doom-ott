@@ -83,24 +83,26 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: const Text('Preferred Quality'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: qualities.map((q) {
-            return RadioListTile<String>(
-              title: Text(q, style: const TextStyle(color: Colors.white)),
-              value: q,
-              groupValue: _preferredQuality,
-              activeColor: AppColors.primary,
-              onChanged: (val) {
-                if (val != null) {
-                  setState(() {
-                    _preferredQuality = val;
-                  });
-                  Navigator.pop(context);
-                }
-              },
-            );
-          }).toList(),
+        content: RadioGroup<String>(
+          groupValue: _preferredQuality,
+          onChanged: (val) {
+            if (val != null) {
+              setState(() {
+                _preferredQuality = val;
+              });
+              Navigator.pop(context);
+            }
+          },
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: qualities.map((q) {
+              return RadioListTile<String>(
+                title: Text(q, style: const TextStyle(color: Colors.white)),
+                value: q,
+                activeColor: AppColors.primary,
+              );
+            }).toList(),
+          ),
         ),
       ),
     );

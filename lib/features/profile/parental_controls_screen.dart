@@ -141,7 +141,7 @@ class _ParentalControlsScreenState extends State<ParentalControlsScreen> {
                 'Require a 4-digit PIN to switch profiles or view restricted content',
                 style: TextStyle(color: AppColors.muted, fontSize: 12),
               ),
-              activeColor: AppColors.primary,
+              activeThumbColor: AppColors.primary,
               value: _isLockEnabled,
               onChanged: (val) {
                 setState(() {
@@ -201,7 +201,7 @@ class _ParentalControlsScreenState extends State<ParentalControlsScreen> {
                     vertical: 4,
                   ),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withOpacity(0.15),
+                    color: AppColors.primary.withValues(alpha: 0.15),
                     borderRadius: BorderRadius.circular(4),
                     border: Border.all(color: AppColors.primary),
                   ),

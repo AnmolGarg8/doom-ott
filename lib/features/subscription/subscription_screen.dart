@@ -119,7 +119,7 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                       color: isCurrent
                           ? AppColors.primary
                           : plan.isPopular
-                          ? AppColors.primary.withOpacity(0.4)
+                          ? AppColors.primary.withValues(alpha: 0.4)
                           : const Color(0xFF1F1F1F),
                       width: isCurrent ? 2 : 1,
                     ),

@@ -266,7 +266,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 'Restrict content access to age PG & below',
                 style: TextStyle(color: AppColors.muted),
               ),
-              activeColor: AppColors.primary,
+              activeThumbColor: AppColors.primary,
               value: _isKids,
               onChanged: (val) {
                 setState(() {

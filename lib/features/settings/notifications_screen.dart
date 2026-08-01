@@ -177,7 +177,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
                       color: alert.isUnread
-                          ? AppColors.primary.withOpacity(0.3)
+                          ? AppColors.primary.withValues(alpha: 0.3)
                           : const Color(0xFF1F1F1F),
                     ),
                   ),
@@ -285,7 +285,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         subtitle,
         style: const TextStyle(color: AppColors.muted, fontSize: 12),
       ),
-      activeColor: AppColors.primary,
+      activeThumbColor: AppColors.primary,
       value: value,
       onChanged: onChanged,
     );

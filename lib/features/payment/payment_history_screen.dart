@@ -176,7 +176,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                                 decoration: BoxDecoration(
                                   color: _getStatusColor(
                                     txn.status,
-                                  ).withOpacity(0.15),
+                                  ).withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(

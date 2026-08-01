@@ -357,73 +357,77 @@ class _PaymentScreenState extends State<PaymentScreen> {
       },
     ];
 
-    return Column(
-      children: methods.map((m) {
-        final isSelected = m['name'] == _selectedMethod;
-        return GestureDetector(
-          onTap: () {
-            setState(() {
-              _selectedMethod = m['name'] as String;
-            });
-          },
-          child: Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: isSelected ? AppColors.primary : const Color(0xFF1F1F1F),
-                width: isSelected ? 2 : 1,
+    return RadioGroup<String>(
+      groupValue: _selectedMethod,
+      onChanged: (val) {
+        if (val != null) {
+          setState(() {
+            _selectedMethod = val;
+          });
+        }
+      },
+      child: Column(
+        children: methods.map((m) {
+          final isSelected = m['name'] == _selectedMethod;
+          return GestureDetector(
+            onTap: () {
+              setState(() {
+                _selectedMethod = m['name'] as String;
+              });
+            },
+            child: Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: isSelected
+                      ? AppColors.primary
+                      : const Color(0xFF1F1F1F),
+                  width: isSelected ? 2 : 1,
+                ),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    m['icon'] as IconData,
+                    color: isSelected ? AppColors.primary : Colors.white70,
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          m['name'] as String,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 14,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          m['subtitle'] as String,
+                          style: const TextStyle(
+                            color: AppColors.muted,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Radio<String>(
+                    value: m['name'] as String,
+                    activeColor: AppColors.primary,
+                  ),
+                ],
               ),
             ),
-            child: Row(
-              children: [
-                Icon(
-                  m['icon'] as IconData,
-                  color: isSelected ? AppColors.primary : Colors.white70,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        m['name'] as String,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        m['subtitle'] as String,
-                        style: const TextStyle(
-                          color: AppColors.muted,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                Radio<String>(
-                  value: m['name'] as String,
-                  groupValue: _selectedMethod,
-                  activeColor: AppColors.primary,
-                  onChanged: (val) {
-                    if (val != null) {
-                      setState(() {
-                        _selectedMethod = val;
-                      });
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        );
-      }).toList(),
+          );
+        }).toList(),
+      ),
     );
   }
 
