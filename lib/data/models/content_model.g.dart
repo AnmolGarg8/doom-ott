@@ -22,7 +22,9 @@ class ContentModelAdapter extends TypeAdapter<ContentModel> {
       synopsis: fields[2] as String,
       posterUrl: fields[3] as String,
       backdropUrl: fields[4] as String,
-      genre: (fields[5] as List).cast<String>(),
+      genre: fields[5] is List
+          ? (fields[5] as List).cast<String>()
+          : (fields[5] is String ? [fields[5] as String] : <String>[]),
       rating: fields[6] as String,
       releaseYear: fields[7] as String,
       durationMinutes: fields[8] as int,

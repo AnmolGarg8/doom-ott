@@ -22,8 +22,17 @@ class HiveWatchlistRepository implements WatchlistRepository {
 
   @override
   Future<List<ContentModel>> getWatchlist() async {
-    final box = await _watchbox;
-    return box.values.toList();
+    try {
+      final box = await _watchbox;
+      return box.values.toList();
+    } catch (e) {
+      // Malformed legacy data, clear the box to prevent screen crash
+      try {
+        final box = await _watchbox;
+        await box.clear();
+      } catch (_) {}
+      return [];
+    }
   }
 
   @override
@@ -46,8 +55,17 @@ class HiveWatchlistRepository implements WatchlistRepository {
 
   @override
   Future<List<ContentModel>> getContinueWatching() async {
-    final box = await _continueBox;
-    return box.values.toList();
+    try {
+      final box = await _continueBox;
+      return box.values.toList();
+    } catch (e) {
+      // Malformed legacy data, clear the box to prevent screen crash
+      try {
+        final box = await _continueBox;
+        await box.clear();
+      } catch (_) {}
+      return [];
+    }
   }
 
   @override
