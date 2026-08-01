@@ -2,7 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
-import '../../features/auth/auth_screen.dart';
+import '../../features/auth/auth_landing_screen.dart';
+import '../../features/auth/phone_entry_screen.dart';
+import '../../features/auth/otp_verification_screen.dart';
+import '../../features/auth/email_entry_screen.dart';
+import '../../features/auth/profile_setup_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/browse/browse_screen.dart';
 import '../../features/search/search_screen.dart';
@@ -43,7 +47,28 @@ class AppRouter {
         builder: (context, state) => const OnboardingScreen(),
       ),
       // Auth
-      GoRoute(path: '/auth', builder: (context, state) => const AuthScreen()),
+      GoRoute(
+        path: '/auth',
+        builder: (context, state) => const AuthLandingScreen(),
+        routes: [
+          GoRoute(
+            path: 'phone',
+            builder: (context, state) => const PhoneEntryScreen(),
+          ),
+          GoRoute(
+            path: 'otp',
+            builder: (context, state) => const OtpVerificationScreen(),
+          ),
+          GoRoute(
+            path: 'email',
+            builder: (context, state) => const EmailEntryScreen(),
+          ),
+          GoRoute(
+            path: 'profile-setup',
+            builder: (context, state) => const ProfileSetupScreen(),
+          ),
+        ],
+      ),
       // Main navigation tabs shell
       StatefulShellRoute.indexedStack(
         builder: (context, state, navigationShell) {

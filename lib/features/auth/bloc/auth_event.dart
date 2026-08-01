@@ -2,21 +2,31 @@ abstract class AuthEvent {}
 
 class AppStarted extends AuthEvent {}
 
-class LoginRequested extends AuthEvent {
-  final String email;
-  final String password;
-  LoginRequested({required this.email, required this.password});
+class SendOtpRequested extends AuthEvent {
+  final String phoneNumber;
+  SendOtpRequested(this.phoneNumber);
 }
 
-class RegisterRequested extends AuthEvent {
-  final String name;
+class VerifyOtpRequested extends AuthEvent {
+  final String code;
+  VerifyOtpRequested(this.code);
+}
+
+class EmailAuthRequested extends AuthEvent {
   final String email;
   final String password;
-  RegisterRequested({
-    required this.name,
+  final bool isSignUp;
+  EmailAuthRequested({
     required this.email,
     required this.password,
+    required this.isSignUp,
   });
+}
+
+class ProfileSetupRequested extends AuthEvent {
+  final String name;
+  final int avatarIndex;
+  ProfileSetupRequested({required this.name, required this.avatarIndex});
 }
 
 class LogoutRequested extends AuthEvent {}
