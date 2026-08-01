@@ -109,6 +109,13 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const Divider(),
                 _buildListTile(
+                  icon: LucideIcons.history,
+                  title: 'Payment History',
+                  subtitle: 'Past invoices and transactions',
+                  onTap: () => context.push('/payment-history'),
+                ),
+                const Divider(),
+                _buildListTile(
                   icon: LucideIcons.settings,
                   title: 'Settings',
                   subtitle: 'App preferences and local storage',

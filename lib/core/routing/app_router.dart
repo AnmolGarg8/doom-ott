@@ -17,6 +17,7 @@ import '../../features/settings/settings_screen.dart';
 import '../../features/legal/legal_screen.dart';
 import '../../features/subscription/subscription_screen.dart';
 import '../../features/payment/payment_screen.dart';
+import '../../features/payment/payment_history_screen.dart';
 import '../../features/content_detail/content_detail_screen.dart';
 import '../../features/player/player_screen.dart';
 import '../../features/home/navigation_shell.dart';
@@ -149,7 +150,15 @@ class AppRouter {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>? ?? {};
-          return PaymentScreen(planDetails: extra);
+          final planName =
+              extra['planName'] as String? ??
+              state.uri.queryParameters['planName'] ??
+              'Monthly Basic';
+          final price =
+              (extra['price'] as num?)?.toDouble() ??
+              double.tryParse(state.uri.queryParameters['price'] ?? '199') ??
+              199.0;
+          return PaymentScreen(planName: planName, price: price);
         },
       ),
       GoRoute(
@@ -180,6 +189,11 @@ class AppRouter {
         path: '/style-guide',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const StyleGuideScreen(),
+      ),
+      GoRoute(
+        path: '/payment-history',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const PaymentHistoryScreen(),
       ),
     ],
   );
