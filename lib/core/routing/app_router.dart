@@ -14,6 +14,9 @@ import '../../features/search/search_screen.dart';
 import '../../features/watchlist/watchlist_screen.dart';
 import '../../features/profile/profile_screen.dart';
 import '../../features/settings/settings_screen.dart';
+import '../../features/profile/profile_picker_screen.dart';
+import '../../features/profile/edit_profile_screen.dart';
+import '../../features/settings/notifications_screen.dart';
 import '../../features/legal/legal_screen.dart';
 import '../../features/subscription/subscription_screen.dart';
 import '../../features/payment/payment_screen.dart';
@@ -194,6 +197,27 @@ class AppRouter {
         path: '/payment-history',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const PaymentHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/profile-picker',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final manage = state.uri.queryParameters['manage'] == 'true';
+          return ProfilePickerScreen(manageMode: manage);
+        },
+      ),
+      GoRoute(
+        path: '/edit-profile',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final id = state.uri.queryParameters['id'];
+          return EditProfileScreen(profileId: id);
+        },
+      ),
+      GoRoute(
+        path: '/notifications',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const NotificationsScreen(),
       ),
     ],
   );

@@ -116,6 +116,13 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const Divider(),
                 _buildListTile(
+                  icon: LucideIcons.users,
+                  title: 'Switch Profiles',
+                  subtitle: 'Netflix-style sub-profile switcher',
+                  onTap: () => context.push('/profile-picker'),
+                ),
+                const Divider(),
+                _buildListTile(
                   icon: LucideIcons.settings,
                   title: 'Settings',
                   subtitle: 'App preferences and local storage',
