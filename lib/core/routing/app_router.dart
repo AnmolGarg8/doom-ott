@@ -20,6 +20,10 @@ import '../../features/settings/notifications_screen.dart';
 import '../../features/profile/parental_controls_screen.dart';
 import '../../features/reviews/reviews_screen.dart';
 import '../../features/legal/legal_screen.dart';
+import '../../features/legal/faq_screen.dart';
+import '../../features/legal/privacy_screen.dart';
+import '../../features/legal/terms_screen.dart';
+import '../../features/legal/about_screen.dart';
 import '../../features/subscription/subscription_screen.dart';
 import '../../features/payment/payment_screen.dart';
 import '../../features/payment/payment_history_screen.dart';
@@ -237,6 +241,26 @@ class AppRouter {
           final title = state.uri.queryParameters['title'] ?? 'Title';
           return ReviewsScreen(contentId: id, contentTitle: title);
         },
+      ),
+      GoRoute(
+        path: '/help-faq',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const FaqScreen(),
+      ),
+      GoRoute(
+        path: '/privacy-policy',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const PrivacyScreen(),
+      ),
+      GoRoute(
+        path: '/terms-conditions',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const TermsScreen(),
+      ),
+      GoRoute(
+        path: '/about-us',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const AboutScreen(),
       ),
     ],
   );
