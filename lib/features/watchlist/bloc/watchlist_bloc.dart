@@ -20,8 +20,14 @@ class WatchlistBloc extends Bloc<WatchlistEvent, WatchlistState> {
   ) async {
     emit(WatchlistLoading());
     try {
-      final list = await watchlistRepository.getWatchlist();
-      emit(WatchlistLoaded(list));
+      final watchlist = await watchlistRepository.getWatchlist();
+      final continueWatching = await watchlistRepository.getContinueWatching();
+      emit(
+        WatchlistLoaded(
+          watchlist: watchlist,
+          continueWatching: continueWatching,
+        ),
+      );
     } catch (e) {
       emit(WatchlistError(e.toString()));
     }
@@ -33,8 +39,14 @@ class WatchlistBloc extends Bloc<WatchlistEvent, WatchlistState> {
   ) async {
     try {
       await watchlistRepository.addToWatchlist(event.content);
-      final list = await watchlistRepository.getWatchlist();
-      emit(WatchlistLoaded(list));
+      final watchlist = await watchlistRepository.getWatchlist();
+      final continueWatching = await watchlistRepository.getContinueWatching();
+      emit(
+        WatchlistLoaded(
+          watchlist: watchlist,
+          continueWatching: continueWatching,
+        ),
+      );
     } catch (e) {
       emit(WatchlistError(e.toString()));
     }
@@ -46,8 +58,14 @@ class WatchlistBloc extends Bloc<WatchlistEvent, WatchlistState> {
   ) async {
     try {
       await watchlistRepository.removeFromWatchlist(event.id);
-      final list = await watchlistRepository.getWatchlist();
-      emit(WatchlistLoaded(list));
+      final watchlist = await watchlistRepository.getWatchlist();
+      final continueWatching = await watchlistRepository.getContinueWatching();
+      emit(
+        WatchlistLoaded(
+          watchlist: watchlist,
+          continueWatching: continueWatching,
+        ),
+      );
     } catch (e) {
       emit(WatchlistError(e.toString()));
     }
@@ -66,8 +84,14 @@ class WatchlistBloc extends Bloc<WatchlistEvent, WatchlistState> {
       } else {
         await watchlistRepository.addToWatchlist(event.content);
       }
-      final list = await watchlistRepository.getWatchlist();
-      emit(WatchlistLoaded(list));
+      final watchlist = await watchlistRepository.getWatchlist();
+      final continueWatching = await watchlistRepository.getContinueWatching();
+      emit(
+        WatchlistLoaded(
+          watchlist: watchlist,
+          continueWatching: continueWatching,
+        ),
+      );
     } catch (e) {
       emit(WatchlistError(e.toString()));
     }

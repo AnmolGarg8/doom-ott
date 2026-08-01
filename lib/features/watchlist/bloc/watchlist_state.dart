@@ -8,7 +8,8 @@ class WatchlistLoading extends WatchlistState {}
 
 class WatchlistLoaded extends WatchlistState {
   final List<ContentModel> watchlist;
-  WatchlistLoaded(this.watchlist);
+  final List<ContentModel> continueWatching;
+  WatchlistLoaded({required this.watchlist, required this.continueWatching});
 }
 
 class WatchlistError extends WatchlistState {
