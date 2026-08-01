@@ -8,6 +8,7 @@ import '../../features/auth/otp_verification_screen.dart';
 import '../../features/auth/email_entry_screen.dart';
 import '../../features/auth/profile_setup_screen.dart';
 import '../../features/home/home_screen.dart';
+import '../../features/browse/live_tv_screen.dart';
 import '../../features/browse/browse_screen.dart';
 import '../../features/search/search_screen.dart';
 import '../../features/watchlist/watchlist_screen.dart';
@@ -85,13 +86,13 @@ class AppRouter {
               ),
             ],
           ),
-          // Browse Tab
+          // Live TV Tab
           StatefulShellBranch(
             navigatorKey: _browseNavigatorKey,
             routes: [
               GoRoute(
-                path: '/browse',
-                builder: (context, state) => const BrowseScreen(),
+                path: '/live-tv',
+                builder: (context, state) => const LiveTvScreen(),
               ),
             ],
           ),
@@ -105,12 +106,12 @@ class AppRouter {
               ),
             ],
           ),
-          // Watchlist Tab
+          // My List Tab
           StatefulShellBranch(
             navigatorKey: _watchlistNavigatorKey,
             routes: [
               GoRoute(
-                path: '/watchlist',
+                path: '/my-list',
                 builder: (context, state) => const WatchlistScreen(),
               ),
             ],
@@ -165,6 +166,14 @@ class AppRouter {
         builder: (context, state) {
           final id = state.pathParameters['id']!;
           return PlayerScreen(contentId: id);
+        },
+      ),
+      GoRoute(
+        path: '/browse',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final genre = state.uri.queryParameters['genre'];
+          return BrowseScreen(initialGenre: genre);
         },
       ),
       GoRoute(

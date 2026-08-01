@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/widgets/content_card.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'bloc/watchlist_bloc.dart';
 import 'bloc/watchlist_event.dart';
@@ -88,52 +88,38 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
               itemCount: list.length,
               itemBuilder: (context, index) {
                 final item = list[index];
-                return GestureDetector(
-                  onTap: () => context.push('/content-detail/${item.id}'),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(8),
-                      color: AppColors.surface,
+                return Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    ContentCard(
+                      content: item,
+                      onTap: () => context.push('/content-detail/${item.id}'),
                     ),
-                    clipBehavior: Clip.antiAlias,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        CachedNetworkImage(
-                          imageUrl: item.thumbnailUrl,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) =>
-                              Container(color: AppColors.surface),
-                          errorWidget: (context, url, error) =>
-                              Container(color: AppColors.surface),
-                        ),
-                        // Remove badge icon
-                        Positioned(
-                          top: 4,
-                          right: 4,
-                          child: GestureDetector(
-                            onTap: () {
-                              context.read<WatchlistBloc>().add(
-                                RemoveFromWatchlistRequested(item.id),
-                              );
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(4),
-                              decoration: const BoxDecoration(
-                                color: Colors.black54,
-                                shape: BoxShape.circle,
-                              ),
-                              child: const Icon(
-                                LucideIcons.x,
-                                size: 12,
-                                color: Colors.white,
-                              ),
-                            ),
+                    // Remove badge icon
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: GestureDetector(
+                        onTap: () {
+                          context.read<WatchlistBloc>().add(
+                            RemoveFromWatchlistRequested(item.id),
+                          );
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: const BoxDecoration(
+                            color: Colors.black54,
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            LucideIcons.x,
+                            size: 14,
+                            color: Colors.white,
                           ),
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  ],
                 );
               },
             );

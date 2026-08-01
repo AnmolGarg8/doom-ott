@@ -19,47 +19,44 @@ class ContentModelAdapter extends TypeAdapter<ContentModel> {
     return ContentModel(
       id: fields[0] as String,
       title: fields[1] as String,
-      description: fields[2] as String,
-      thumbnailUrl: fields[3] as String,
-      videoUrl: fields[4] as String,
-      duration: fields[5] as String,
-      releaseYear: fields[6] as String,
-      rating: fields[7] as String,
-      genres: (fields[8] as List).cast<String>(),
-      cast: (fields[9] as List).cast<String>(),
-      isMovie: fields[10] as bool,
-      category: fields[11] as String?,
+      synopsis: fields[2] as String,
+      posterUrl: fields[3] as String,
+      backdropUrl: fields[4] as String,
+      genre: (fields[5] as List).cast<String>(),
+      rating: fields[6] as String,
+      releaseYear: fields[7] as String,
+      durationMinutes: fields[8] as int,
+      type: fields[9] as String,
+      progress: fields[10] as double?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ContentModel obj) {
     writer
-      ..writeByte(12)
+      ..writeByte(11)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
       ..write(obj.title)
       ..writeByte(2)
-      ..write(obj.description)
+      ..write(obj.synopsis)
       ..writeByte(3)
-      ..write(obj.thumbnailUrl)
+      ..write(obj.posterUrl)
       ..writeByte(4)
-      ..write(obj.videoUrl)
+      ..write(obj.backdropUrl)
       ..writeByte(5)
-      ..write(obj.duration)
+      ..write(obj.genre)
       ..writeByte(6)
-      ..write(obj.releaseYear)
-      ..writeByte(7)
       ..write(obj.rating)
+      ..writeByte(7)
+      ..write(obj.releaseYear)
       ..writeByte(8)
-      ..write(obj.genres)
+      ..write(obj.durationMinutes)
       ..writeByte(9)
-      ..write(obj.cast)
+      ..write(obj.type)
       ..writeByte(10)
-      ..write(obj.isMovie)
-      ..writeByte(11)
-      ..write(obj.category);
+      ..write(obj.progress);
   }
 
   @override

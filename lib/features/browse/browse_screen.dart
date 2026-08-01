@@ -1,14 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import 'package:cached_network_image/cached_network_image.dart';
-import '../home/bloc/content_bloc.dart';
-import '../home/bloc/content_event.dart';
-import '../home/bloc/content_state.dart';
 import '../../core/theme/colors.dart';
+import '../../core/theme/constants.dart';
+import '../../core/widgets/content_card.dart';
+import '../../core/widgets/loading_shimmer.dart';
+import '../../data/mock/mock_data.dart';
+import '../../data/models/content_model.dart';
 
 class BrowseScreen extends StatefulWidget {
-  const BrowseScreen({super.key});
+  final String? initialGenre;
+  const BrowseScreen({super.key, this.initialGenre});
 
   @override
   State<BrowseScreen> createState() => _BrowseScreenState();
@@ -17,137 +18,158 @@ class BrowseScreen extends StatefulWidget {
 class _BrowseScreenState extends State<BrowseScreen> {
   final List<String> _genres = [
     'Action',
-    'Sci-Fi',
-    'Fantasy',
-    'Comedy',
     'Drama',
-    'Adventure',
-    'Mystery',
+    'Comedy',
     'Thriller',
+    'Romance',
+    'Documentary',
+    'Kids',
+    'Originals',
   ];
-  String _selectedGenre = 'Action';
+
+  late String _selectedGenre;
+  bool _isLoading = false;
+  List<ContentModel> _filteredContent = [];
+  double _opacity = 1.0;
 
   @override
   void initState() {
     super.initState();
-    context.read<ContentBloc>().add(LoadGenreContent(_selectedGenre));
+    _selectedGenre = widget.initialGenre ?? 'Action';
+    _applyFilter(initial: true);
+  }
+
+  Future<void> _applyFilter({bool initial = false}) async {
+    if (!initial) {
+      setState(() {
+        _isLoading = true;
+        _opacity = 0.0;
+      });
+      // Simulate API latency delay
+      await Future.delayed(const Duration(milliseconds: 400));
+    }
+
+    if (!mounted) return;
+
+    final results = MockData.allContent
+        .where((element) => element.genre.contains(_selectedGenre))
+        .toList();
+
+    setState(() {
+      _filteredContent = results;
+      _isLoading = false;
+      _opacity = 1.0;
+    });
   }
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.of(context).size.width;
+    final crossAxisCount = width > 600 ? 3 : 2;
+
     return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(title: const Text('Browse Genres'), centerTitle: false),
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          onPressed: () => context.pop(),
+        ),
+        title: const Text(
+          'Browse Categories',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+      ),
       body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Genre select row
+          // Genre Chips Row (Horizontal Scroll)
           SizedBox(
-            height: 50,
+            height: 56,
             child: ListView.builder(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               itemCount: _genres.length,
               itemBuilder: (context, index) {
                 final genre = _genres[index];
                 final isSelected = genre == _selectedGenre;
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 4.0),
-                  child: FilterChip(
+                  padding: const EdgeInsets.only(right: 8.0),
+                  child: ChoiceChip(
                     label: Text(genre),
                     selected: isSelected,
+                    selectedColor: AppColors.primary,
+                    backgroundColor: AppColors.surface,
+                    checkmarkColor: Colors.black,
+                    labelStyle: TextStyle(
+                      color: isSelected ? Colors.black : Colors.white,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(AppThemeConstants.radiusChip),
+                    ),
                     onSelected: (selected) {
-                      if (selected) {
+                      if (selected && genre != _selectedGenre) {
                         setState(() {
                           _selectedGenre = genre;
                         });
-                        context.read<ContentBloc>().add(
-                          LoadGenreContent(genre),
-                        );
+                        _applyFilter();
                       }
                     },
-                    selectedColor: AppColors.primary,
-                    checkmarkColor: AppColors.background,
-                    labelStyle: TextStyle(
-                      color: isSelected
-                          ? AppColors.background
-                          : AppColors.onBackground,
-                      fontWeight: isSelected
-                          ? FontWeight.bold
-                          : FontWeight.normal,
-                    ),
-                    backgroundColor: AppColors.surface,
-                    side: BorderSide(
-                      color: isSelected
-                          ? AppColors.primary
-                          : const Color(0xFF1F1F1F),
-                    ),
                   ),
                 );
               },
             ),
           ),
-          const SizedBox(height: 12),
-          // Content display grid
+          const SizedBox(height: 8),
+
+          // Content Grid or Loading Shimmer
           Expanded(
-            child: BlocBuilder<ContentBloc, ContentState>(
-              builder: (context, state) {
-                if (state is ContentLoading) {
-                  return const Center(
-                    child: CircularProgressIndicator(color: AppColors.primary),
-                  );
-                } else if (state is GenreContentLoaded) {
-                  if (state.content.isEmpty) {
-                    return const Center(
-                      child: Text(
-                        'No content found in this genre.',
-                        style: TextStyle(color: AppColors.muted),
-                      ),
-                    );
-                  }
-                  return GridView.builder(
+            child: _isLoading
+                ? GridView.builder(
                     padding: const EdgeInsets.all(16),
-                    gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 3,
-                          childAspectRatio: 2 / 3,
-                          crossAxisSpacing: 8,
-                          mainAxisSpacing: 8,
-                        ),
-                    itemCount: state.content.length,
-                    itemBuilder: (context, index) {
-                      final item = state.content[index];
-                      return GestureDetector(
-                        onTap: () => context.push('/content-detail/${item.id}'),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(8),
-                            color: AppColors.surface,
-                          ),
-                          clipBehavior: Clip.antiAlias,
-                          child: CachedNetworkImage(
-                            imageUrl: item.thumbnailUrl,
-                            fit: BoxFit.cover,
-                            placeholder: (context, url) =>
-                                Container(color: AppColors.surface),
-                            errorWidget: (context, url, error) =>
-                                Container(color: AppColors.surface),
-                          ),
-                        ),
-                      );
-                    },
-                  );
-                } else if (state is ContentError) {
-                  return Center(
-                    child: Text(
-                      'Error loading genre: ${state.message}',
-                      style: const TextStyle(color: AppColors.error),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: crossAxisCount,
+                      childAspectRatio: 2 / 3,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
                     ),
-                  );
-                }
-                return const SizedBox();
-              },
-            ),
+                    itemCount: 6,
+                    itemBuilder: (context, index) => const LoadingShimmer(
+                      width: double.infinity,
+                      height: double.infinity,
+                      borderRadius: AppThemeConstants.radiusCard,
+                    ),
+                  )
+                : AnimatedOpacity(
+                    opacity: _opacity,
+                    duration: const Duration(milliseconds: 300),
+                    child: _filteredContent.isEmpty
+                        ? const Center(
+                            child: Text(
+                              'No content found for this genre.',
+                              style: TextStyle(color: AppColors.muted),
+                            ),
+                          )
+                        : GridView.builder(
+                            padding: const EdgeInsets.all(16),
+                            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: crossAxisCount,
+                              childAspectRatio: 2 / 3,
+                              crossAxisSpacing: 12,
+                              mainAxisSpacing: 12,
+                            ),
+                            itemCount: _filteredContent.length,
+                            itemBuilder: (context, index) {
+                              final item = _filteredContent[index];
+                              return ContentCard(
+                                content: item,
+                                onTap: () => context.push('/content-detail/${item.id}'),
+                              );
+                            },
+                          ),
+                  ),
           ),
         ],
       ),

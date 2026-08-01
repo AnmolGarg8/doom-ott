@@ -44,7 +44,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   void _initializePlayer() {
     if (_content != null) {
-      _player.open(Media(_content!.videoUrl));
+      final videoUrl = _content!.id == '2'
+          ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
+          : _content!.id == '3'
+          ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
+          : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+
+      _player.open(Media(videoUrl));
       setState(() {
         _isPlayerInitialized = true;
       });

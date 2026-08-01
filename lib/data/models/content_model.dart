@@ -11,64 +11,61 @@ class ContentModel extends HiveObject {
   final String title;
 
   @HiveField(2)
-  final String description;
+  final String synopsis;
 
   @HiveField(3)
-  final String thumbnailUrl;
+  final String posterUrl;
 
   @HiveField(4)
-  final String videoUrl;
+  final String backdropUrl;
 
   @HiveField(5)
-  final String duration;
+  final List<String> genre;
 
   @HiveField(6)
-  final String releaseYear;
-
-  @HiveField(7)
   final String rating;
 
+  @HiveField(7)
+  final String releaseYear;
+
   @HiveField(8)
-  final List<String> genres;
+  final int durationMinutes;
 
   @HiveField(9)
-  final List<String> cast;
+  final String type; // 'movie', 'short', 'series'
 
   @HiveField(10)
-  final bool isMovie;
-
-  @HiveField(11)
-  final String? category;
+  final double? progress; // e.g. 0.45 (45%). Null if not started.
 
   ContentModel({
     required this.id,
     required this.title,
-    required this.description,
-    required this.thumbnailUrl,
-    required this.videoUrl,
-    required this.duration,
-    required this.releaseYear,
+    required this.synopsis,
+    required this.posterUrl,
+    required this.backdropUrl,
+    required this.genre,
     required this.rating,
-    required this.genres,
-    required this.cast,
-    required this.isMovie,
-    this.category,
+    required this.releaseYear,
+    required this.durationMinutes,
+    required this.type,
+    this.progress,
   });
 
   factory ContentModel.fromJson(Map<String, dynamic> json) {
     return ContentModel(
       id: json['id'] as String,
       title: json['title'] as String,
-      description: json['description'] as String,
-      thumbnailUrl: json['thumbnailUrl'] as String,
-      videoUrl: json['videoUrl'] as String,
-      duration: json['duration'] as String,
-      releaseYear: json['releaseYear'] as String,
+      synopsis: json['synopsis'] as String,
+      posterUrl: json['posterUrl'] as String,
+      backdropUrl: json['backdropUrl'] as String,
+      genre: List<String>.from(json['genre'] as List),
       rating: json['rating'] as String,
-      genres: List<String>.from(json['genres'] as List),
-      cast: List<String>.from(json['cast'] as List),
-      isMovie: json['isMovie'] as bool,
-      category: json['category'] as String?,
+      releaseYear: json['releaseYear'] as String,
+      durationMinutes: json['durationMinutes'] as int,
+      type: json['type'] as String,
+      progress: json['progress'] != null
+          ? (json['progress'] as num).toDouble()
+          : null,
     );
   }
 
@@ -76,16 +73,43 @@ class ContentModel extends HiveObject {
     return {
       'id': id,
       'title': title,
-      'description': description,
-      'thumbnailUrl': thumbnailUrl,
-      'videoUrl': videoUrl,
-      'duration': duration,
-      'releaseYear': releaseYear,
+      'synopsis': synopsis,
+      'posterUrl': posterUrl,
+      'backdropUrl': backdropUrl,
+      'genre': genre,
       'rating': rating,
-      'genres': genres,
-      'cast': cast,
-      'isMovie': isMovie,
-      'category': category,
+      'releaseYear': releaseYear,
+      'durationMinutes': durationMinutes,
+      'type': type,
+      'progress': progress,
     };
+  }
+
+  ContentModel copyWith({
+    String? id,
+    String? title,
+    String? synopsis,
+    String? posterUrl,
+    String? backdropUrl,
+    List<String>? genre,
+    String? rating,
+    String? releaseYear,
+    int? durationMinutes,
+    String? type,
+    double? progress,
+  }) {
+    return ContentModel(
+      id: id ?? this.id,
+      title: title ?? this.title,
+      synopsis: synopsis ?? this.synopsis,
+      posterUrl: posterUrl ?? this.posterUrl,
+      backdropUrl: backdropUrl ?? this.backdropUrl,
+      genre: genre ?? this.genre,
+      rating: rating ?? this.rating,
+      releaseYear: releaseYear ?? this.releaseYear,
+      durationMinutes: durationMinutes ?? this.durationMinutes,
+      type: type ?? this.type,
+      progress: progress ?? this.progress,
+    );
   }
 }

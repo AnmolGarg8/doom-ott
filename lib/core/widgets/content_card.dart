@@ -44,7 +44,7 @@ class ContentCard extends StatelessWidget {
             fit: StackFit.expand,
             children: [
               CachedNetworkImage(
-                imageUrl: content!.thumbnailUrl,
+                imageUrl: content!.posterUrl,
                 fit: BoxFit.cover,
                 placeholder: (context, url) => const LoadingShimmer(
                   width: double.infinity,
@@ -62,7 +62,12 @@ class ContentCard extends StatelessWidget {
                 left: 0,
                 right: 0,
                 child: Container(
-                  padding: const EdgeInsets.all(AppThemeConstants.space8),
+                  padding: const EdgeInsets.only(
+                    left: AppThemeConstants.space8,
+                    right: AppThemeConstants.space8,
+                    top: AppThemeConstants.space8,
+                    bottom: AppThemeConstants.space12,
+                  ),
                   decoration: const BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
@@ -87,6 +92,22 @@ class ContentCard extends StatelessWidget {
                   ),
                 ),
               ),
+              // Progress Bar overlay
+              if (content!.progress != null)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: Container(
+                    height: 4,
+                    color: Colors.white24,
+                    alignment: Alignment.centerLeft,
+                    child: FractionallySizedBox(
+                      widthFactor: content!.progress!.clamp(0.0, 1.0),
+                      child: Container(color: AppColors.primary),
+                    ),
+                  ),
+                ),
             ],
           ),
         ),
