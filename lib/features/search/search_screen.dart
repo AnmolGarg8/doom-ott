@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/constants.dart';
-import '../../core/widgets/content_card.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/loading_shimmer.dart';
 import '../../data/mock/mock_data.dart';
@@ -27,7 +26,7 @@ class _SearchScreenState extends State<SearchScreen> {
   List<ContentModel> _searchResults = [];
 
   // Filter Bottom Sheet selections
-  Set<String> _selectedGenres = {};
+  final Set<String> _selectedGenres = {};
   String? _selectedLanguage;
   RangeValues _yearRange = const RangeValues(2020, 2026);
   double _minRatingIndex = 0.0; // 0: All, 1: PG, 2: PG-13, 3: 16+, 4: 18+

@@ -433,7 +433,7 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
                 const SnackBar(
                   content: Text('Link copied to clipboard!'),
                   backgroundColor: AppColors.primary,
-                  duration: const Duration(seconds: 1),
+                  duration: Duration(seconds: 1),
                 ),
               );
             },
@@ -965,7 +965,7 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
                 ],
               ),
             );
-          }).toList(),
+          }),
       ],
     );
   }

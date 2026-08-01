@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/colors.dart';
-import '../../core/theme/constants.dart';
 import '../../core/widgets/primary_button.dart';
 
 class ParentalControlsScreen extends StatefulWidget {

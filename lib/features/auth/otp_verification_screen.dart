@@ -7,7 +7,6 @@ import 'bloc/auth_bloc.dart';
 import 'bloc/auth_event.dart';
 import 'bloc/auth_state.dart';
 import '../../core/theme/colors.dart';
-import '../../core/theme/constants.dart';
 import '../../core/widgets/primary_button.dart';
 
 class OtpVerificationScreen extends StatefulWidget {

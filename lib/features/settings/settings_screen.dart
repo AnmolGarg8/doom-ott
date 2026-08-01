@@ -3,7 +3,6 @@ import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/colors.dart';
-import '../../core/theme/constants.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -16,7 +15,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _preferredQuality = 'Auto (Max 4K)';
   bool _parentalControlActive = false;
 
-  Future<void> _clearCache(BuildContext context) async {
+  Future<void> _clearCache() async {
     try {
       await Hive.box<dynamic>('watchlist').clear();
       await Hive.box<dynamic>('continue_watching').clear();
@@ -57,7 +56,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
           TextButton(
             onPressed: () {
               Navigator.of(context).pop();
-              _clearCache(context);
+              _clearCache();
             },
             child: const Text(
               'Clear',
@@ -87,7 +86,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: qualities.map((q) {
-            final isSelected = q == _preferredQuality;
             return RadioListTile<String>(
               title: Text(q, style: const TextStyle(color: Colors.white)),
               value: q,
