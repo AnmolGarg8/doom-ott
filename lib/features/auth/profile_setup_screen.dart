@@ -18,6 +18,7 @@ class ProfileSetupScreen extends StatefulWidget {
 class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
+  final _focusNode = FocusNode();
   int _selectedAvatarIndex = 0;
 
   final List<Map<String, dynamic>> _avatars = [
@@ -30,8 +31,27 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
   ];
 
   @override
+  void initState() {
+    super.initState();
+    _focusNode.addListener(() {
+      if (_focusNode.hasFocus) {
+        Future.delayed(const Duration(milliseconds: 300), () {
+          if (mounted) {
+            Scrollable.ensureVisible(
+              context,
+              alignment: 0.5,
+              duration: const Duration(milliseconds: 300),
+            );
+          }
+        });
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _nameController.dispose();
+    _focusNode.dispose();
     super.dispose();
   }
 
@@ -67,10 +87,12 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
           builder: (context, state) {
             final isLoading = state is AuthLoading;
 
-            return Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 24.0,
-                vertical: 16.0,
+            return SingleChildScrollView(
+              padding: EdgeInsets.only(
+                left: 24.0,
+                right: 24.0,
+                top: 16.0,
+                bottom: 16.0 + MediaQuery.of(context).viewInsets.bottom,
               ),
               child: Form(
                 key: _formKey,
@@ -164,6 +186,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                     const SizedBox(height: 12),
                     TextFormField(
                       controller: _nameController,
+                      focusNode: _focusNode,
                       enabled: !isLoading,
                       style: const TextStyle(color: Colors.white),
                       decoration: const InputDecoration(
@@ -185,7 +208,7 @@ class _ProfileSetupScreenState extends State<ProfileSetupScreen> {
                       },
                     ),
 
-                    const Spacer(),
+                    const SizedBox(height: 32),
 
                     PrimaryButton(
                       label: 'Complete Setup',
