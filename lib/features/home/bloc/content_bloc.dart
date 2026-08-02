@@ -20,7 +20,13 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
       final trending = await contentRepository.getTrendingContent();
       final continueWatching = await contentRepository
           .getContinueWatchingContent();
-      final movies = await contentRepository.getMovies();
+      final allMoviesAndShorts = await contentRepository.getMovies();
+      final movies = allMoviesAndShorts
+          .where((e) => e.type == 'movie')
+          .toList();
+      final shorts = allMoviesAndShorts
+          .where((e) => e.type == 'short')
+          .toList();
       final tvShows = await contentRepository.getTVShows();
       emit(
         HomeContentLoaded(
@@ -29,6 +35,7 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
           continueWatching: continueWatching,
           movies: movies,
           tvShows: tvShows,
+          shorts: shorts,
         ),
       );
     } catch (e) {

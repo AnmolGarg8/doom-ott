@@ -16,6 +16,7 @@ import '../../core/widgets/content_card.dart';
 import '../../core/widgets/content_carousel.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/secondary_button.dart';
+import '../../core/widgets/short_card.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -96,6 +97,10 @@ class _HomeScreenState extends State<HomeScreen> {
                         // 2. Continue Watching Carousel (only if continueWatching is not empty)
                         if (state.continueWatching.isNotEmpty)
                           _buildContinueWatchingList(state.continueWatching),
+
+                        // DOOM Shorts Section
+                        if (state.shorts.isNotEmpty)
+                          _buildShortsRow(state.shorts),
 
                         // 3. Trending Now Carousel
                         if (state.trending.isNotEmpty)
@@ -409,6 +414,71 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         const SizedBox(height: 16),
+      ],
+    );
+  }
+
+  Widget _buildShortsRow(List<ContentModel> shorts) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppThemeConstants.space16,
+          ),
+          child: Row(
+            children: [
+              const Text(
+                'DOOM Shorts',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.emberAmber,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text(
+                  '60s',
+                  style: TextStyle(
+                    color: Colors.black,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: AppThemeConstants.space12),
+        SizedBox(
+          height: 180,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppThemeConstants.space16,
+            ),
+            itemCount: shorts.length,
+            itemBuilder: (context, index) {
+              final short = shorts[index];
+              return Padding(
+                padding: const EdgeInsets.only(right: 12.0),
+                child: ShortCard(
+                  content: short,
+                  onTap: () {
+                    context.push('/shorts/${short.id}');
+                  },
+                ),
+              );
+            },
+          ),
+        ),
+        const SizedBox(height: AppThemeConstants.space16),
       ],
     );
   }

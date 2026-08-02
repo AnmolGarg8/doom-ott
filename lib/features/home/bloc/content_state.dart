@@ -12,6 +12,7 @@ class HomeContentLoaded extends ContentState {
   final List<ContentModel> continueWatching;
   final List<ContentModel> movies;
   final List<ContentModel> tvShows;
+  final List<ContentModel> shorts;
 
   HomeContentLoaded({
     required this.featured,
@@ -19,6 +20,7 @@ class HomeContentLoaded extends ContentState {
     required this.continueWatching,
     required this.movies,
     required this.tvShows,
+    required this.shorts,
   });
 }
 

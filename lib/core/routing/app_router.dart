@@ -31,6 +31,7 @@ import '../../features/content_detail/content_detail_screen.dart';
 import '../../features/player/player_screen.dart';
 import '../../features/home/navigation_shell.dart';
 import '../../features/style_guide/style_guide_screen.dart';
+import '../../features/shorts/shorts_reel_screen.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../data/repositories/content_repository.dart';
 import '../../features/content_detail/bloc/content_detail_bloc.dart';
@@ -199,6 +200,14 @@ class AppRouter {
             ),
             child: PlayerScreen(contentId: id),
           );
+        },
+      ),
+      GoRoute(
+        path: '/shorts/:startId',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final startId = state.pathParameters['startId']!;
+          return ShortsReelScreen(startId: startId);
         },
       ),
       GoRoute(
