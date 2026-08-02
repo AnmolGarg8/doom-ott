@@ -40,7 +40,7 @@ final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _homeNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _browseNavigatorKey =
     GlobalKey<NavigatorState>();
-final GlobalKey<NavigatorState> _searchNavigatorKey =
+final GlobalKey<NavigatorState> _minisNavigatorKey =
     GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _watchlistNavigatorKey =
     GlobalKey<NavigatorState>();
@@ -110,13 +110,14 @@ class AppRouter {
               ),
             ],
           ),
-          // Search Tab
+          // Minis Tab
           StatefulShellBranch(
-            navigatorKey: _searchNavigatorKey,
+            navigatorKey: _minisNavigatorKey,
             routes: [
               GoRoute(
-                path: '/search',
-                builder: (context, state) => const SearchScreen(),
+                path: '/minis',
+                builder: (context, state) =>
+                    const ShortsReelScreen(isTab: true),
               ),
             ],
           ),
@@ -147,6 +148,11 @@ class AppRouter {
         path: '/settings',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const SettingsScreen(),
+      ),
+      GoRoute(
+        path: '/search',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const SearchScreen(),
       ),
       GoRoute(
         path: '/legal',

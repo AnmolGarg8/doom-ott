@@ -24,10 +24,7 @@ class BottomNavBar extends StatelessWidget {
       items: const [
         BottomNavigationBarItem(icon: Icon(LucideIcons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(LucideIcons.tv), label: 'Live TV'),
-        BottomNavigationBarItem(
-          icon: Icon(LucideIcons.search),
-          label: 'Search',
-        ),
+        BottomNavigationBarItem(icon: Icon(LucideIcons.zap), label: 'Minis'),
         BottomNavigationBarItem(
           icon: Icon(LucideIcons.bookmark),
           label: 'My List',

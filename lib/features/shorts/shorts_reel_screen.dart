@@ -15,8 +15,9 @@ import '../watchlist/bloc/watchlist_state.dart';
 
 class ShortsReelScreen extends StatefulWidget {
   final String startId;
+  final bool isTab;
 
-  const ShortsReelScreen({super.key, required this.startId});
+  const ShortsReelScreen({super.key, this.startId = '', this.isTab = false});
 
   @override
   State<ShortsReelScreen> createState() => _ShortsReelScreenState();
@@ -55,9 +56,9 @@ class _ShortsReelScreenState extends State<ShortsReelScreen> {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
     // Find starting short item index
-    final startIndex = _shorts.indexWhere(
-      (element) => element.id == widget.startId,
-    );
+    final startIndex = widget.isTab
+        ? 0
+        : _shorts.indexWhere((element) => element.id == widget.startId);
     _currentIndex = startIndex >= 0 ? startIndex : 0;
 
     // Create PageController initialized at a mid-range index to allow infinite circular looping in both directions
@@ -245,14 +246,16 @@ class _ShortsReelScreenState extends State<ShortsReelScreen> {
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         // Back Close Button
-                        IconButton(
-                          icon: const Icon(
-                            LucideIcons.x,
-                            color: Colors.white,
-                            size: 24,
-                          ),
-                          onPressed: () => Navigator.pop(context),
-                        ),
+                        widget.isTab
+                            ? const SizedBox(width: 48)
+                            : IconButton(
+                                icon: const Icon(
+                                  LucideIcons.x,
+                                  color: Colors.white,
+                                  size: 24,
+                                ),
+                                onPressed: () => Navigator.pop(context),
+                              ),
                         // Mute/Volume Icon
                         IconButton(
                           icon: Icon(
