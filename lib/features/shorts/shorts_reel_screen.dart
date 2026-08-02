@@ -160,6 +160,10 @@ class _ShortsReelScreenState extends State<ShortsReelScreen> {
       );
     }
 
+    final double navOffset = widget.isTab
+        ? (80.0 + MediaQuery.of(context).padding.bottom)
+        : 0.0;
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -183,21 +187,26 @@ class _ShortsReelScreenState extends State<ShortsReelScreen> {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    if (isCurrent)
-                      Video(controller: _controller, fit: BoxFit.cover)
-                    else
-                      CachedNetworkImage(
-                        imageUrl: short.posterUrl,
-                        fit: BoxFit.cover,
-                      ),
+                    Padding(
+                      padding: EdgeInsets.only(bottom: navOffset),
+                      child: isCurrent
+                          ? Video(controller: _controller, fit: BoxFit.cover)
+                          : CachedNetworkImage(
+                              imageUrl: short.posterUrl,
+                              fit: BoxFit.cover,
+                            ),
+                    ),
 
                     // Blur/shimmer loader during buffer changes
                     if (isCurrent && _isBuffering)
-                      Container(
-                        color: Colors.black54,
-                        child: const Center(
-                          child: CircularProgressIndicator(
-                            color: AppColors.primary,
+                      Padding(
+                        padding: EdgeInsets.only(bottom: navOffset),
+                        child: Container(
+                          color: Colors.black54,
+                          child: const Center(
+                            child: CircularProgressIndicator(
+                              color: AppColors.primary,
+                            ),
                           ),
                         ),
                       ),
@@ -206,7 +215,7 @@ class _ShortsReelScreenState extends State<ShortsReelScreen> {
                     _buildGradients(),
 
                     // Information Overlays (Bottom and Right panels)
-                    _buildUIOverlay(short),
+                    _buildUIOverlay(short, navOffset),
                   ],
                 ),
               );
@@ -335,12 +344,12 @@ class _ShortsReelScreenState extends State<ShortsReelScreen> {
     );
   }
 
-  Widget _buildUIOverlay(ContentModel short) {
+  Widget _buildUIOverlay(ContentModel short, double navOffset) {
     return Stack(
       children: [
         // Bottom details
         Positioned(
-          bottom: 30,
+          bottom: 16 + navOffset,
           left: 16,
           right: 80,
           child: Column(
@@ -420,7 +429,7 @@ class _ShortsReelScreenState extends State<ShortsReelScreen> {
 
         // Right panel action rail
         Positioned(
-          bottom: 30,
+          bottom: 24 + navOffset,
           right: 16,
           child: Column(
             mainAxisSize: MainAxisSize.min,
