@@ -33,7 +33,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     {
       'title': '60 Seconds. Full Story.',
       'description':
-          'Bite-sized originals built for a quick watch — stack through our short-form series whenever you\'ve got a minute.',
+          "Bite-sized originals built for a quick watch — stack through our DOOM Mini's whenever you've got a minute.",
     },
     {
       'title': 'Yours, On Any Screen',

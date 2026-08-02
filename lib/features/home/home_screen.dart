@@ -429,7 +429,7 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Row(
             children: [
               const Text(
-                'DOOM Shorts',
+                "DOOM MINI'S",
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 18,

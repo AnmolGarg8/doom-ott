@@ -161,7 +161,7 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                             icon: LucideIcons.bookmark,
                             title: 'Your Watchlist is Empty',
                             description:
-                                'Explore our catalog to add blockbusters, series, and shorts to My List.',
+                                "Explore our catalog to add blockbusters, series, and DOOM Mini's to My List.",
                             actionLabel: 'Browse Content',
                             onActionPressed: () => context.push('/browse'),
                           )
