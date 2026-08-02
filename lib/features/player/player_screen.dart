@@ -56,7 +56,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
       _content = contentState.content;
       _initializePlayer();
     } else {
-      context.read<ContentDetailBloc>().add(LoadContentDetail(widget.contentId));
+      context.read<ContentDetailBloc>().add(
+        LoadContentDetail(widget.contentId),
+      );
     }
   }
 

@@ -5,6 +5,9 @@ import 'colors.dart';
 class AppTheme {
   AppTheme._();
 
+  static TextStyle get displayFont => GoogleFonts.bebasNeue();
+  static TextStyle get monoFont => GoogleFonts.jetBrainsMono();
+
   static ThemeData get darkTheme {
     final baseTextTheme = ThemeData.dark().textTheme;
 

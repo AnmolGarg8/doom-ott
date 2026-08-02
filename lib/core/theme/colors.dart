@@ -13,4 +13,8 @@ class AppColors {
 
   static const Color error = Color(0xFFD32F2F);
   static const Color success = Color(0xFF388E3C);
+
+  static const Color emberAmber = Color(0xFFFFC94D);
+  static const Color inkBlack = Color(0xFF0A0A0A);
+  static const Color smokeGrey = Color(0xFF8A8A8A);
 }
