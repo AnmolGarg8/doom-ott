@@ -166,7 +166,12 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                             onActionPressed: () => context.push('/browse'),
                           )
                         : GridView.builder(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 16,
+                              bottom: 100,
+                            ),
                             gridDelegate:
                                 const SliverGridDelegateWithFixedCrossAxisCount(
                                   crossAxisCount: 3,
@@ -205,7 +210,12 @@ class _WatchlistScreenState extends State<WatchlistScreen> {
                             onActionPressed: () => context.push('/browse'),
                           )
                         : ListView.builder(
-                            padding: const EdgeInsets.all(16),
+                            padding: const EdgeInsets.only(
+                              left: 16,
+                              right: 16,
+                              top: 16,
+                              bottom: 100,
+                            ),
                             itemCount: continueWatching.length,
                             itemBuilder: (context, index) {
                               // Sorted by most recently watched (latest appended entries at the bottom or top?

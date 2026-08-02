@@ -12,15 +12,24 @@ class NavigationShell extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: navigationShell,
-      bottomNavigationBar: BottomNavBar(
-        currentIndex: navigationShell.currentIndex,
-        onTap: (index) {
-          navigationShell.goBranch(
-            index,
-            initialLocation: index == navigationShell.currentIndex,
-          );
-        },
+      body: Stack(
+        children: [
+          Positioned.fill(child: navigationShell),
+          Positioned(
+            left: 16,
+            right: 16,
+            bottom: 16 + MediaQuery.of(context).padding.bottom,
+            child: BottomNavBar(
+              currentIndex: navigationShell.currentIndex,
+              onTap: (index) {
+                navigationShell.goBranch(
+                  index,
+                  initialLocation: index == navigationShell.currentIndex,
+                );
+              },
+            ),
+          ),
+        ],
       ),
     );
   }
