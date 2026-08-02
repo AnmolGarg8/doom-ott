@@ -3,9 +3,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
-import '../home/bloc/content_bloc.dart';
-import '../home/bloc/content_event.dart';
-import '../home/bloc/content_state.dart';
+import 'bloc/content_detail_bloc.dart';
+import 'bloc/content_detail_event.dart';
+import 'bloc/content_detail_state.dart';
 import '../watchlist/bloc/watchlist_bloc.dart';
 import '../watchlist/bloc/watchlist_event.dart';
 import '../watchlist/bloc/watchlist_state.dart';
@@ -69,7 +69,7 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
   }
 
   void _loadContent() {
-    context.read<ContentBloc>().add(LoadContentDetail(widget.contentId));
+    context.read<ContentDetailBloc>().add(LoadContentDetail(widget.contentId));
     context.read<WatchlistBloc>().add(LoadWatchlist());
     _reviewsList = _getInitialReviews(widget.contentId);
     _recalculateAverage();
@@ -127,9 +127,9 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: BlocBuilder<ContentBloc, ContentState>(
+      body: BlocBuilder<ContentDetailBloc, ContentDetailState>(
         builder: (context, state) {
-          if (state is ContentLoading) {
+          if (state is ContentDetailLoading) {
             return const Center(
               child: CircularProgressIndicator(color: AppColors.primary),
             );
@@ -192,7 +192,7 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
                 ],
               ),
             );
-          } else if (state is ContentError) {
+          } else if (state is ContentDetailError) {
             return Center(
               child: Text(
                 'Error: ${state.message}',

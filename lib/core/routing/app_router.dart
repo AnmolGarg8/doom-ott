@@ -31,6 +31,9 @@ import '../../features/content_detail/content_detail_screen.dart';
 import '../../features/player/player_screen.dart';
 import '../../features/home/navigation_shell.dart';
 import '../../features/style_guide/style_guide_screen.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import '../../data/repositories/content_repository.dart';
+import '../../features/content_detail/bloc/content_detail_bloc.dart';
 
 final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
 final GlobalKey<NavigatorState> _homeNavigatorKey = GlobalKey<NavigatorState>();
@@ -175,7 +178,13 @@ class AppRouter {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          return ContentDetailScreen(contentId: id);
+          // Scope ContentDetailBloc locally so state is created fresh per content item details load
+          return BlocProvider<ContentDetailBloc>(
+            create: (context) => ContentDetailBloc(
+              contentRepository: context.read<ContentRepository>(),
+            ),
+            child: ContentDetailScreen(contentId: id),
+          );
         },
       ),
       GoRoute(
@@ -183,7 +192,13 @@ class AppRouter {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final id = state.pathParameters['id']!;
-          return PlayerScreen(contentId: id);
+          // Scope ContentDetailBloc locally so state is created fresh per video playback load
+          return BlocProvider<ContentDetailBloc>(
+            create: (context) => ContentDetailBloc(
+              contentRepository: context.read<ContentRepository>(),
+            ),
+            child: PlayerScreen(contentId: id),
+          );
         },
       ),
       GoRoute(

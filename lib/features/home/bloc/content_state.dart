@@ -22,21 +22,6 @@ class HomeContentLoaded extends ContentState {
   });
 }
 
-class ContentDetailLoaded extends ContentState {
-  final ContentModel content;
-  ContentDetailLoaded(this.content);
-}
-
-class SearchResultsLoaded extends ContentState {
-  final List<ContentModel> results;
-  SearchResultsLoaded(this.results);
-}
-
-class GenreContentLoaded extends ContentState {
-  final List<ContentModel> content;
-  GenreContentLoaded(this.content);
-}
-
 class ContentError extends ContentState {
   final String message;
   ContentError(this.message);

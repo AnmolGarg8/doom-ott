@@ -5,9 +5,9 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:lucide_icons/lucide_icons.dart';
-import '../home/bloc/content_bloc.dart';
-import '../home/bloc/content_state.dart';
-import '../home/bloc/content_event.dart';
+import '../content_detail/bloc/content_detail_bloc.dart';
+import '../content_detail/bloc/content_detail_state.dart';
+import '../content_detail/bloc/content_detail_event.dart';
 import '../../data/models/content_model.dart';
 import '../../data/repositories/watchlist_repository.dart';
 import '../../core/theme/colors.dart';
@@ -50,13 +50,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _controller = VideoController(_player);
 
     // Fetch content details
-    final contentState = context.read<ContentBloc>().state;
+    final contentState = context.read<ContentDetailBloc>().state;
     if (contentState is ContentDetailLoaded &&
         contentState.content.id == widget.contentId) {
       _content = contentState.content;
       _initializePlayer();
     } else {
-      context.read<ContentBloc>().add(LoadContentDetail(widget.contentId));
+      context.read<ContentDetailBloc>().add(LoadContentDetail(widget.contentId));
     }
   }
 
@@ -287,7 +287,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Widget build(BuildContext context) {
     final isShort = _content?.type == 'short';
 
-    return BlocListener<ContentBloc, ContentState>(
+    return BlocListener<ContentDetailBloc, ContentDetailState>(
       listener: (context, state) {
         if (state is ContentDetailLoaded && _content == null) {
           setState(() {

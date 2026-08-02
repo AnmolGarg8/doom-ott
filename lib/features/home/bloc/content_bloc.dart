@@ -8,9 +8,6 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
 
   ContentBloc({required this.contentRepository}) : super(ContentInitial()) {
     on<LoadHomeContent>(_onLoadHomeContent);
-    on<LoadContentDetail>(_onLoadContentDetail);
-    on<SearchContentRequested>(_onSearchContentRequested);
-    on<LoadGenreContent>(_onLoadGenreContent);
   }
 
   Future<void> _onLoadHomeContent(
@@ -34,49 +31,6 @@ class ContentBloc extends Bloc<ContentEvent, ContentState> {
           tvShows: tvShows,
         ),
       );
-    } catch (e) {
-      emit(ContentError(e.toString()));
-    }
-  }
-
-  Future<void> _onLoadContentDetail(
-    LoadContentDetail event,
-    Emitter<ContentState> emit,
-  ) async {
-    emit(ContentLoading());
-    try {
-      final content = await contentRepository.getContentById(event.id);
-      if (content != null) {
-        emit(ContentDetailLoaded(content));
-      } else {
-        emit(ContentError('Content not found'));
-      }
-    } catch (e) {
-      emit(ContentError(e.toString()));
-    }
-  }
-
-  Future<void> _onSearchContentRequested(
-    SearchContentRequested event,
-    Emitter<ContentState> emit,
-  ) async {
-    emit(ContentLoading());
-    try {
-      final results = await contentRepository.searchContent(event.query);
-      emit(SearchResultsLoaded(results));
-    } catch (e) {
-      emit(ContentError(e.toString()));
-    }
-  }
-
-  Future<void> _onLoadGenreContent(
-    LoadGenreContent event,
-    Emitter<ContentState> emit,
-  ) async {
-    emit(ContentLoading());
-    try {
-      final content = await contentRepository.getContentByGenre(event.genre);
-      emit(GenreContentLoaded(content));
     } catch (e) {
       emit(ContentError(e.toString()));
     }
