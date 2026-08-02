@@ -51,6 +51,13 @@ class _ProfilePickerScreenState extends State<ProfilePickerScreen> {
         'isKids': true,
       });
       await _profileBox.put('active_id', 'p_1');
+    } else if (!_profileBox.containsKey('p_2')) {
+      await _profileBox.put('p_2', {
+        'id': 'p_2',
+        'name': 'Doom Kid',
+        'avatarIndex': 3,
+        'isKids': true,
+      });
     }
 
     _loadProfiles();

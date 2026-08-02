@@ -43,9 +43,15 @@ class _ParentalControlsScreenState extends State<ParentalControlsScreen> {
   }
 
   void _loadParentalSettings() {
-    final profile = Map<String, dynamic>.from(
-      _profileBox.get(widget.profileId) as Map,
-    );
+    final rawProfile = _profileBox.get(widget.profileId);
+    if (rawProfile == null) {
+      // Profile not found, fallback to empty map
+      setState(() {
+        _isBoxReady = true;
+      });
+      return;
+    }
+    final profile = Map<String, dynamic>.from(rawProfile as Map);
     _pinController.text = (profile['parentalPin'] as String? ?? '');
     _isLockEnabled = _pinController.text.isNotEmpty;
     _ratingLimitIndex = (profile['maxRatingIndex'] as double? ?? 3.0);
