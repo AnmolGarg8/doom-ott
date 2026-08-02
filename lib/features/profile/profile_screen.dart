@@ -1,14 +1,63 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../auth/bloc/auth_bloc.dart';
 import '../auth/bloc/auth_event.dart';
 import '../auth/bloc/auth_state.dart';
 import '../../core/theme/colors.dart';
 
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  late Box<dynamic> _profileBox;
+  List<Map<String, dynamic>> _profiles = [];
+  String _activeProfileId = 'p_1';
+  bool _isBoxReady = false;
+
+  final List<Color> _avatarColors = const [
+    Colors.amber,
+    Colors.blue,
+    Colors.green,
+    Colors.purple,
+    Colors.red,
+    Colors.orange,
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    _initHive();
+  }
+
+  Future<void> _initHive() async {
+    _profileBox = await Hive.openBox<dynamic>('user_profiles');
+    _loadProfiles();
+  }
+
+  void _loadProfiles() {
+    final activeId =
+        _profileBox.get('active_id', defaultValue: 'p_1') as String;
+    final keys = _profileBox.keys.where((k) => k != 'active_id').toList();
+
+    final List<Map<String, dynamic>> list = [];
+    for (final k in keys) {
+      final val = Map<String, dynamic>.from(_profileBox.get(k) as Map);
+      list.add(val);
+    }
+
+    setState(() {
+      _profiles = list;
+      _activeProfileId = activeId;
+      _isBoxReady = true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,6 +68,15 @@ class ProfileScreen extends StatelessWidget {
         builder: (context, state) {
           if (state is Authenticated) {
             final user = state.user;
+
+            // Compute active profile details
+            final activeProfile = _profiles.firstWhere(
+              (p) => p['id'] == _activeProfileId,
+              orElse: () => {},
+            );
+            final displayName = activeProfile.isNotEmpty
+                ? activeProfile['name'] as String
+                : user.name;
 
             return ListView(
               padding: const EdgeInsets.only(
@@ -32,23 +90,12 @@ class ProfileScreen extends StatelessWidget {
                 Center(
                   child: Column(
                     children: [
-                      CircleAvatar(
-                        radius: 50,
-                        backgroundColor: AppColors.surface,
-                        backgroundImage: user.profilePicture != null
-                            ? NetworkImage(user.profilePicture!)
-                            : null,
-                        child: user.profilePicture == null
-                            ? const Icon(
-                                LucideIcons.user,
-                                size: 40,
-                                color: AppColors.primary,
-                              )
-                            : null,
-                      ),
-                      const SizedBox(height: 16),
+                      // Sub-profile row
+                      _buildProfilesRow(context),
+
+                      const SizedBox(height: 24),
                       Text(
-                        user.name,
+                        displayName,
                         style: const TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
@@ -97,7 +144,7 @@ class ProfileScreen extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 40),
+                const SizedBox(height: 32),
 
                 // Settings lists
                 _buildSectionTitle('Account'),
@@ -118,10 +165,11 @@ class ProfileScreen extends StatelessWidget {
                 ),
                 const Divider(),
                 _buildListTile(
-                  icon: LucideIcons.users,
-                  title: 'Switch Profiles',
-                  subtitle: 'Netflix-style sub-profile switcher',
-                  onTap: () => context.push('/profile-picker'),
+                  icon: LucideIcons.shieldCheck,
+                  title: 'Parental Controls',
+                  subtitle: 'Manage content restrictions per profile',
+                  onTap: () =>
+                      context.push('/parental-controls?id=$_activeProfileId'),
                 ),
                 const Divider(),
                 _buildListTile(
@@ -155,24 +203,221 @@ class ProfileScreen extends StatelessWidget {
                   icon: const Icon(LucideIcons.logOut, size: 18),
                   label: const Text(
                     'Sign Out',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 0.8,
+                    ),
                   ),
                 ),
-                const SizedBox(height: 20),
               ],
             );
           }
-          return const Center(
-            child: CircularProgressIndicator(color: AppColors.primary),
-          );
+          return const Center(child: Text('Unauthenticated'));
         },
+      ),
+    );
+  }
+
+  Widget _buildProfilesRow(BuildContext context) {
+    if (!_isBoxReady) return const SizedBox.shrink();
+
+    return Column(
+      children: [
+        SizedBox(
+          height: 105,
+          child: Center(
+            child: ListView.builder(
+              scrollDirection: Axis.horizontal,
+              shrinkWrap: true,
+              physics: const BouncingScrollPhysics(),
+              itemCount: _profiles.length + (_profiles.length < 4 ? 1 : 0),
+              itemBuilder: (context, index) {
+                if (index == _profiles.length) {
+                  // Add Profile Tile
+                  return _buildAddProfileTile(context);
+                }
+
+                final profile = _profiles[index];
+                final isCurrentActive = profile['id'] == _activeProfileId;
+                final avatarIdx = profile['avatarIndex'] as int? ?? 0;
+                final avatarColor =
+                    _avatarColors[avatarIdx % _avatarColors.length];
+                final bool isKids = profile['isKids'] as bool? ?? false;
+
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                  child: GestureDetector(
+                    onTap: () async {
+                      await _profileBox.put('active_id', profile['id']);
+                      setState(() {
+                        _activeProfileId = profile['id'];
+                      });
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              'Switched to profile: ${profile['name']}',
+                            ),
+                            backgroundColor: AppColors.primary,
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      }
+                    },
+                    onLongPress: () {
+                      context
+                          .push('/edit-profile?id=${profile['id']}')
+                          .then((_) => _loadProfiles());
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            // Avatar Circle
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: avatarColor,
+                                shape: BoxShape.circle,
+                                border: Border.all(
+                                  color: isCurrentActive
+                                      ? AppColors.primary
+                                      : Colors.transparent,
+                                  width: 2.5,
+                                ),
+                                boxShadow: [
+                                  if (isCurrentActive)
+                                    BoxShadow(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.4,
+                                      ),
+                                      blurRadius: 8,
+                                      spreadRadius: 1,
+                                    ),
+                                ],
+                              ),
+                              child: Center(
+                                child: Text(
+                                  profile['name']
+                                      .toString()
+                                      .substring(0, 1)
+                                      .toUpperCase(),
+                                  style: const TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w900,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // Kids badge overlay
+                            if (isKids)
+                              Positioned(
+                                bottom: 0,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 6,
+                                    vertical: 2,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Text(
+                                    'KIDS',
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 8,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          profile['name'] as String,
+                          style: TextStyle(
+                            color: isCurrentActive
+                                ? AppColors.primary
+                                : Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 12,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+        // Manage Profiles text link
+        TextButton.icon(
+          onPressed: () {
+            context.push('/profile-picker').then((_) => _loadProfiles());
+          },
+          icon: const Icon(
+            LucideIcons.users,
+            size: 14,
+            color: AppColors.primary,
+          ),
+          label: const Text(
+            'Manage Profiles',
+            style: TextStyle(
+              color: AppColors.primary,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAddProfileTile(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: GestureDetector(
+        onTap: () {
+          context.push('/edit-profile').then((_) => _loadProfiles());
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64,
+              height: 64,
+              decoration: const BoxDecoration(
+                color: AppColors.surface,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(
+                LucideIcons.plus,
+                color: AppColors.muted,
+                size: 28,
+              ),
+            ),
+            const SizedBox(height: 6),
+            const Text(
+              'Add Profile',
+              style: TextStyle(color: AppColors.muted, fontSize: 12),
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 12.0),
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Text(
         title,
         style: const TextStyle(

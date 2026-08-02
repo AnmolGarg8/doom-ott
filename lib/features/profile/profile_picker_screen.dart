@@ -44,6 +44,12 @@ class _ProfilePickerScreenState extends State<ProfilePickerScreen> {
         'avatarIndex': 0,
         'isKids': false,
       });
+      await _profileBox.put('p_2', {
+        'id': 'p_2',
+        'name': 'Doom Kid',
+        'avatarIndex': 3,
+        'isKids': true,
+      });
       await _profileBox.put('active_id', 'p_1');
     }
 
