@@ -15,7 +15,6 @@ import '../../core/widgets/primary_button.dart';
 import '../../core/widgets/rating_badge.dart';
 import '../../core/widgets/content_card.dart';
 import '../../data/models/content_model.dart';
-import '../../data/mock/mock_data.dart';
 
 class ContentDetailScreen extends StatefulWidget {
   final String contentId;
@@ -136,15 +135,7 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
           } else if (state is ContentDetailLoaded) {
             final content = state.content;
 
-            // Fetch similar content in the same genre
-            final similarContent = MockData.allContent
-                .where(
-                  (item) =>
-                      item.id != content.id &&
-                      item.genre.any((g) => content.genre.contains(g)),
-                )
-                .take(6)
-                .toList();
+            final similarContent = state.similar;
 
             return SingleChildScrollView(
               child: Column(

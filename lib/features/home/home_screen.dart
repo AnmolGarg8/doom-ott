@@ -8,7 +8,6 @@ import 'bloc/content_bloc.dart';
 import 'bloc/content_event.dart';
 import 'bloc/content_state.dart';
 import '../../data/models/content_model.dart';
-import '../../data/mock/mock_data.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/constants.dart';
 import '../../core/widgets/custom_app_bar.dart';
@@ -126,9 +125,11 @@ class _HomeScreenState extends State<HomeScreen> {
                         ...['Action', 'Drama', 'Comedy', 'Originals'].map((
                           genre,
                         ) {
-                          // Filter locally from all mock content
-                          final genreItems = MockData.allContent
+                          final genreItems = state.movies
+                              .followedBy(state.tvShows)
+                              .followedBy(state.trending)
                               .where((item) => item.genre.contains(genre))
+                              .toSet()
                               .toList();
 
                           if (genreItems.isEmpty) return const SizedBox();

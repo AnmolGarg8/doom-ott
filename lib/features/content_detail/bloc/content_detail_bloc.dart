@@ -19,7 +19,8 @@ class ContentDetailBloc extends Bloc<ContentDetailEvent, ContentDetailState> {
     try {
       final content = await contentRepository.getContentById(event.id);
       if (content != null) {
-        emit(ContentDetailLoaded(content));
+        final similar = await contentRepository.getSimilarContent(event.id);
+        emit(ContentDetailLoaded(content, similar: similar));
       } else {
         emit(ContentDetailError('Content not found'));
       }

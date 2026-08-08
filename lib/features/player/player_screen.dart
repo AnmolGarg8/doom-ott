@@ -9,6 +9,7 @@ import '../content_detail/bloc/content_detail_bloc.dart';
 import '../content_detail/bloc/content_detail_state.dart';
 import '../content_detail/bloc/content_detail_event.dart';
 import '../../data/models/content_model.dart';
+import '../../data/repositories/content_repository.dart';
 import '../../data/repositories/watchlist_repository.dart';
 import '../../core/theme/colors.dart';
 
@@ -62,7 +63,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  void _initializePlayer() {
+  void _initializePlayer() async {
     if (_content != null) {
       // Configure Screen Orientation / Immersion based on type
       if (_content!.type != 'short') {
@@ -73,12 +74,16 @@ class _PlayerScreenState extends State<PlayerScreen> {
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       }
 
-      // Map mock video URLs
-      final videoUrl = _content!.id == '2'
-          ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/TearsOfSteel.mp4'
-          : _content!.id == '3'
-          ? 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/Sintel.mp4'
-          : 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+      String videoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
+      try {
+        final contentRepo = RepositoryProvider.of<ContentRepository>(context);
+        final fetchedUrl = await contentRepo.getPlaybackUrl(_content!.id);
+        if (fetchedUrl.isNotEmpty) {
+          videoUrl = fetchedUrl;
+        }
+      } catch (_) {}
+
+      if (!mounted) return;
 
       _player.open(Media(videoUrl));
 

@@ -8,7 +8,8 @@ class ContentDetailLoading extends ContentDetailState {}
 
 class ContentDetailLoaded extends ContentDetailState {
   final ContentModel content;
-  ContentDetailLoaded(this.content);
+  final List<ContentModel> similar;
+  ContentDetailLoaded(this.content, {this.similar = const []});
 }
 
 class ContentDetailError extends ContentDetailState {

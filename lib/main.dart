@@ -23,11 +23,10 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(ContentModelAdapter());
 
-  // Instantiate DioClient and Real Repositories
   final dioClient = DioClient(baseUrl: 'http://10.0.2.2:8000');
   final authRepository = RealAuthRepository(dioClient: dioClient);
-  final contentRepository = MockContentRepository();
-  final watchlistRepository = HiveWatchlistRepository();
+  final contentRepository = RealContentRepository(dioClient: dioClient);
+  final watchlistRepository = RealWatchlistRepository(dioClient: dioClient);
 
   runApp(
     MultiRepositoryProvider(

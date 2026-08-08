@@ -1,4 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import '../../core/network/dio_client.dart';
 import '../models/content_model.dart';
 import '../mock/mock_data.dart';
 
@@ -10,6 +11,96 @@ abstract class WatchlistRepository {
 
   Future<List<ContentModel>> getContinueWatching();
   Future<void> addToContinueWatching(ContentModel content);
+}
+
+class RealWatchlistRepository implements WatchlistRepository {
+  final DioClient dioClient;
+  static const String _watchlistBoxName = 'watchlist';
+  static const String _continueWatchingBoxName = 'continue_watching';
+
+  RealWatchlistRepository({required this.dioClient});
+
+  Future<Box<ContentModel>> get _watchbox =>
+      Hive.openBox<ContentModel>(_watchlistBoxName);
+  Future<Box<ContentModel>> get _continueBox =>
+      Hive.openBox<ContentModel>(_continueWatchingBoxName);
+
+  @override
+  Future<List<ContentModel>> getWatchlist() async {
+    final box = await _watchbox;
+    final cached = box.values.toList();
+
+    // Background sync with API
+    _syncWatchlistFromBackend();
+
+    return cached;
+  }
+
+  Future<void> _syncWatchlistFromBackend() async {
+    try {
+      final response = await dioClient.get('/watchlist');
+      if (response.statusCode == 200 && response.data != null) {
+        final list = response.data as List;
+        final box = await _watchbox;
+        await box.clear();
+        for (final item in list) {
+          if (item['content'] != null) {
+            final content = ContentModel.fromJson(
+              item['content'] as Map<String, dynamic>,
+            );
+            await box.put(content.id, content);
+          }
+        }
+      }
+    } catch (_) {}
+  }
+
+  @override
+  Future<void> addToWatchlist(ContentModel content) async {
+    final box = await _watchbox;
+    await box.put(content.id, content);
+
+    try {
+      await dioClient.post('/watchlist/${content.id}');
+    } catch (_) {}
+  }
+
+  @override
+  Future<void> removeFromWatchlist(String contentId) async {
+    final box = await _watchbox;
+    await box.delete(contentId);
+
+    try {
+      await dioClient.dio.delete('/watchlist/$contentId');
+    } catch (_) {}
+  }
+
+  @override
+  Future<bool> isInWatchlist(String contentId) async {
+    final box = await _watchbox;
+    return box.containsKey(contentId);
+  }
+
+  @override
+  Future<List<ContentModel>> getContinueWatching() async {
+    final box = await _continueBox;
+    return box.values.toList();
+  }
+
+  @override
+  Future<void> addToContinueWatching(ContentModel content) async {
+    final box = await _continueBox;
+    await box.put(content.id, content);
+
+    try {
+      final posSeconds =
+          ((content.progress ?? 0.0) * (content.durationMinutes * 60)).toInt();
+      await dioClient.dio.put(
+        '/watch-progress/${content.id}',
+        data: {'position_seconds': posSeconds},
+      );
+    } catch (_) {}
+  }
 }
 
 class HiveWatchlistRepository implements WatchlistRepository {
@@ -27,7 +118,6 @@ class HiveWatchlistRepository implements WatchlistRepository {
       final box = await _watchbox;
       return box.values.toList();
     } catch (e) {
-      // Malformed legacy data, clear the box to prevent screen crash
       try {
         final box = await _watchbox;
         await box.clear();
@@ -68,7 +158,6 @@ class HiveWatchlistRepository implements WatchlistRepository {
       }
       return box.values.toList();
     } catch (e) {
-      // Malformed legacy data, clear the box to prevent screen crash
       try {
         final box = await _continueBox;
         await box.clear();
@@ -80,7 +169,6 @@ class HiveWatchlistRepository implements WatchlistRepository {
   @override
   Future<void> addToContinueWatching(ContentModel content) async {
     final box = await _continueBox;
-    // We add or update the watch history for this content
     await box.put(content.id, content);
   }
 }
