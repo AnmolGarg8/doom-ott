@@ -12,6 +12,7 @@ import '../../data/models/content_model.dart';
 import '../../data/repositories/content_repository.dart';
 import '../../data/repositories/watchlist_repository.dart';
 import '../../core/theme/colors.dart';
+import '../../core/widgets/empty_state.dart';
 
 class PlayerScreen extends StatefulWidget {
   final String contentId;
@@ -26,6 +27,8 @@ class _PlayerScreenState extends State<PlayerScreen> {
   late final Player _player;
   late final VideoController _controller;
   bool _isPlayerInitialized = false;
+  bool _isLoading = true;
+  String? _playbackError;
   ContentModel? _content;
 
   // Custom Controls States
@@ -50,7 +53,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _player = Player();
     _controller = VideoController(_player);
 
-    // Fetch content details
     final contentState = context.read<ContentDetailBloc>().state;
     if (contentState is ContentDetailLoaded &&
         contentState.content.id == widget.contentId) {
@@ -63,10 +65,28 @@ class _PlayerScreenState extends State<PlayerScreen> {
     }
   }
 
-  void _initializePlayer() async {
-    if (_content != null) {
+  Future<void> _initializePlayer() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _playbackError = null;
+    });
+
+    try {
+      final contentRepo = RepositoryProvider.of<ContentRepository>(context);
+
+      _content ??= await contentRepo.getContentById(widget.contentId);
+
+      // Fetch real playback URL from backend: GET /content/{id}/playback-url
+      final fetchedUrl = await contentRepo.getPlaybackUrl(widget.contentId);
+      if (fetchedUrl.isEmpty) {
+        throw Exception('Playback URL is empty or unavailable.');
+      }
+
+      if (!mounted) return;
+
       // Configure Screen Orientation / Immersion based on type
-      if (_content!.type != 'short') {
+      if (_content?.type != 'short') {
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.landscapeLeft,
           DeviceOrientation.landscapeRight,
@@ -74,18 +94,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
         SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
       }
 
-      String videoUrl = 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4';
-      try {
-        final contentRepo = RepositoryProvider.of<ContentRepository>(context);
-        final fetchedUrl = await contentRepo.getPlaybackUrl(_content!.id);
-        if (fetchedUrl.isNotEmpty) {
-          videoUrl = fetchedUrl;
-        }
-      } catch (_) {}
-
-      if (!mounted) return;
-
-      _player.open(Media(videoUrl));
+      _player.open(Media(fetchedUrl));
 
       // Listen to Player Streams
       _posSub = _player.stream.position.listen((p) {
@@ -101,12 +110,23 @@ class _PlayerScreenState extends State<PlayerScreen> {
         if (mounted) setState(() => _isBuffering = buffering);
       });
 
-      setState(() {
-        _isPlayerInitialized = true;
-      });
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isPlayerInitialized = true;
+        });
+      }
 
       _startHideTimer();
       _startProgressTracker();
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _isPlayerInitialized = false;
+          _playbackError = e.toString().replaceAll('Exception: ', '');
+        });
+      }
     }
   }
 
@@ -140,7 +160,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
           _isPlaying &&
           _duration > Duration.zero) {
         final double progress = _position.inSeconds / _duration.inSeconds;
-        // If they watched > 1% and < 95% save/update continue watching cache in Hive
         if (progress > 0.01 && progress < 0.95 && _content != null) {
           final updatedContent = _content!.copyWith(progress: progress);
           await RepositoryProvider.of<WatchlistRepository>(
@@ -201,7 +220,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
           topRight: Radius.circular(16),
         ),
       ),
-      builder: (context) {
+      builder: (bottomSheetContext) {
         return Container(
           padding: const EdgeInsets.all(20),
           height: 350,
@@ -246,20 +265,30 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           fontSize: 12,
                         ),
                       ),
-                      onTap: () {
-                        // Switch content/episode video HLS stream mockup
-                        _player.open(
-                          Media(
-                            'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-                          ),
-                        );
-                        Navigator.pop(context);
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text('Switched to ${ep['title']}'),
-                            backgroundColor: AppColors.primary,
-                          ),
-                        );
+                      onTap: () async {
+                        final contentRepo =
+                            RepositoryProvider.of<ContentRepository>(context);
+                        final messenger = ScaffoldMessenger.of(context);
+                        Navigator.pop(bottomSheetContext);
+                        try {
+                          final epUrl = await contentRepo.getPlaybackUrl(
+                            widget.contentId,
+                          );
+                          _player.open(Media(epUrl));
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text('Switched to ${ep['title']}'),
+                              backgroundColor: AppColors.primary,
+                            ),
+                          );
+                        } catch (e) {
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text('Failed to load episode stream: $e'),
+                              backgroundColor: AppColors.error,
+                            ),
+                          );
+                        }
                       },
                     );
                   },
@@ -274,11 +303,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
   @override
   void dispose() {
-    // Restore orientations and system UI
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-    // Cancel Subscriptions & Timers
     _posSub?.cancel();
     _durSub?.cancel();
     _playSub?.cancel();
@@ -305,7 +332,26 @@ class _PlayerScreenState extends State<PlayerScreen> {
       },
       child: Scaffold(
         backgroundColor: Colors.black,
-        body: _content == null || !_isPlayerInitialized
+        body: _playbackError != null
+            ? Scaffold(
+                backgroundColor: Colors.black,
+                appBar: AppBar(
+                  backgroundColor: Colors.transparent,
+                  leading: IconButton(
+                    icon:
+                        const Icon(LucideIcons.arrowLeft, color: Colors.white),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ),
+                body: EmptyState(
+                  icon: LucideIcons.alertCircle,
+                  title: 'Playback Unavailable',
+                  description: _playbackError!,
+                  actionLabel: 'Retry',
+                  onActionPressed: _initializePlayer,
+                ),
+              )
+            : _isLoading || _content == null || !_isPlayerInitialized
             ? const Center(
                 child: CircularProgressIndicator(color: AppColors.primary),
               )
@@ -321,7 +367,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         aspectRatio: isShort ? 9 / 16 : 16 / 9,
                         child: Video(
                           controller: _controller,
-                          controls: NoVideoControls, // custom controls stack
+                          controls: NoVideoControls,
                           fit: isShort ? BoxFit.cover : BoxFit.contain,
                         ),
                       ),
@@ -338,7 +384,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
                     // Controls Layer Overlay
                     if (_showControls) ...[
-                      // Dark Dim backdrop
                       Container(color: Colors.black38),
 
                       // TOP BAR: Title, Settings & Back Button
@@ -450,7 +495,6 @@ class _PlayerScreenState extends State<PlayerScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Scrubber Row
                               Row(
                                 children: [
                                   Text(
@@ -506,12 +550,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                               ),
                               const SizedBox(height: 8),
 
-                              // Sub-controls buttons row
                               Row(
                                 mainAxisAlignment:
                                     MainAxisAlignment.spaceBetween,
                                 children: [
-                                  // Episodes list button (only show for Series type)
                                   if (_content?.type == 'series')
                                     TextButton.icon(
                                       icon: const Icon(
@@ -528,14 +570,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                                   else
                                     const SizedBox(),
 
-                                  // Portrait/Landscape Switch Icon
                                   IconButton(
                                     icon: const Icon(
                                       LucideIcons.screenShare,
                                       color: Colors.white70,
                                     ),
                                     onPressed: () {
-                                      // Toggle device orientations manually
                                       if (MediaQuery.of(context).orientation ==
                                           Orientation.portrait) {
                                         SystemChrome.setPreferredOrientations([
