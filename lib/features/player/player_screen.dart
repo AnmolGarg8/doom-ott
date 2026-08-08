@@ -284,7 +284,9 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         } catch (e) {
                           messenger.showSnackBar(
                             SnackBar(
-                              content: Text('Failed to load episode stream: $e'),
+                              content: Text(
+                                'Failed to load episode stream: $e',
+                              ),
                               backgroundColor: AppColors.error,
                             ),
                           );
@@ -338,8 +340,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
                 appBar: AppBar(
                   backgroundColor: Colors.transparent,
                   leading: IconButton(
-                    icon:
-                        const Icon(LucideIcons.arrowLeft, color: Colors.white),
+                    icon: const Icon(
+                      LucideIcons.arrowLeft,
+                      color: Colors.white,
+                    ),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ),

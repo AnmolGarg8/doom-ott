@@ -93,8 +93,9 @@ class RealWatchlistRepository implements WatchlistRepository {
     await box.put(content.id, content);
 
     try {
-      final posSeconds =
-          ((content.progress ?? 0.0) * (content.durationMinutes * 60)).toInt();
+      final duration =
+          content.durationSeconds ?? ((content.durationMinutes ?? 0) * 60);
+      final posSeconds = ((content.progress ?? 0.0) * duration).toInt();
       await dioClient.dio.put(
         '/watch-progress/${content.id}',
         data: {'position_seconds': posSeconds},

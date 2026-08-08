@@ -93,10 +93,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
           event.password,
         );
       } else {
-        user = await authRepository.loginWithEmail(
-          event.email,
-          event.password,
-        );
+        user = await authRepository.loginWithEmail(event.email, event.password);
       }
       _tempUser = user;
       emit(Authenticated(user));
@@ -121,10 +118,7 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _onLogout(
-    LogoutRequested event,
-    Emitter<AuthState> emit,
-  ) async {
+  Future<void> _onLogout(LogoutRequested event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
     try {
       await authRepository.logout();

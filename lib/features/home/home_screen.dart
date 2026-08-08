@@ -87,6 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
+                        SizedBox(
+                          height: 60.0 + MediaQuery.of(context).padding.top,
+                        ),
                         // 1. Hero Auto-Scrolling Banner Carousel
                         if (featuredList.isNotEmpty)
                           _buildHeroCarousel(featuredList),

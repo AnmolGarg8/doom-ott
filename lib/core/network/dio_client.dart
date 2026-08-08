@@ -12,19 +12,19 @@ class DioClient {
   DioClient({
     String baseUrl = 'http://10.0.2.2:8000',
     FlutterSecureStorage? storage,
-  })  : _storage = storage ?? const FlutterSecureStorage(),
-        _dio = Dio(
-          BaseOptions(
-            baseUrl: baseUrl,
-            connectTimeout: const Duration(seconds: 15),
-            receiveTimeout: const Duration(seconds: 15),
-            responseType: ResponseType.json,
-            headers: {
-              'Content-Type': 'application/json',
-              'Accept': 'application/json',
-            },
-          ),
-        ) {
+  }) : _storage = storage ?? const FlutterSecureStorage(),
+       _dio = Dio(
+         BaseOptions(
+           baseUrl: baseUrl,
+           connectTimeout: const Duration(seconds: 15),
+           receiveTimeout: const Duration(seconds: 15),
+           responseType: ResponseType.json,
+           headers: {
+             'Content-Type': 'application/json',
+             'Accept': 'application/json',
+           },
+         ),
+       ) {
     _dio.interceptors.addAll([
       _AuthInterceptor(_storage),
       _RefreshTokenInterceptor(_dio, _storage),

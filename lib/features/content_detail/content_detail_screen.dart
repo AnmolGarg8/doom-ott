@@ -305,7 +305,7 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
                   Text(
                     content.type == 'series'
                         ? 'TV Series'
-                        : '${content.durationMinutes} mins',
+                        : '${content.durationMinutes ?? 0} mins',
                     style: const TextStyle(
                       color: Colors.white70,
                       fontSize: 13,

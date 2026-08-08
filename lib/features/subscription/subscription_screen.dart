@@ -113,7 +113,9 @@ class _SubscriptionScreenState extends State<SubscriptionScreen> {
                   itemCount: _plans.length,
                   itemBuilder: (context, index) {
                     final plan = _plans[index];
-                    final isCurrent = plan.name.toLowerCase() == currentPlanName.toLowerCase();
+                    final isCurrent =
+                        plan.name.toLowerCase() ==
+                        currentPlanName.toLowerCase();
 
                     final features = [
                       '${plan.maxScreens} Screen${plan.maxScreens > 1 ? "s" : ""} sharing limit',

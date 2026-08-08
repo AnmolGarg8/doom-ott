@@ -29,13 +29,16 @@ class ContentModel extends HiveObject {
   final String releaseYear;
 
   @HiveField(8)
-  final int durationMinutes;
+  final int? durationMinutes;
 
   @HiveField(9)
   final String type; // 'movie', 'short', 'series'
 
   @HiveField(10)
   final double? progress; // e.g. 0.45 (45%). Null if not started.
+
+  @HiveField(11)
+  final int? durationSeconds;
 
   ContentModel({
     required this.id,
@@ -46,23 +49,36 @@ class ContentModel extends HiveObject {
     required this.genre,
     required this.rating,
     required this.releaseYear,
-    required this.durationMinutes,
+    this.durationMinutes,
     required this.type,
     this.progress,
+    this.durationSeconds,
   });
 
   factory ContentModel.fromJson(Map<String, dynamic> json) {
     return ContentModel(
       id: json['id'] as String,
       title: json['title'] as String,
-      synopsis: json['synopsis'] as String,
-      posterUrl: json['posterUrl'] as String,
-      backdropUrl: json['backdropUrl'] as String,
-      genre: List<String>.from(json['genre'] as List),
-      rating: json['rating'] as String,
-      releaseYear: json['releaseYear'] as String,
-      durationMinutes: json['durationMinutes'] as int,
-      type: json['type'] as String,
+      synopsis: json['synopsis'] as String? ?? '',
+      posterUrl:
+          json['poster_url'] as String? ?? json['posterUrl'] as String? ?? '',
+      backdropUrl:
+          json['backdrop_url'] as String? ??
+          json['backdropUrl'] as String? ??
+          '',
+      genre: List<String>.from(json['genre'] as List? ?? []),
+      rating: json['avg_rating'] != null
+          ? json['avg_rating'].toString()
+          : (json['rating'] != null ? json['rating'].toString() : 'N/A'),
+      releaseYear:
+          json['release_year']?.toString() ??
+          json['releaseYear']?.toString() ??
+          '',
+      durationMinutes:
+          json['duration_minutes'] as int? ?? json['durationMinutes'] as int?,
+      durationSeconds:
+          json['duration_seconds'] as int? ?? json['durationSeconds'] as int?,
+      type: json['type'] as String? ?? 'movie',
       progress: json['progress'] != null
           ? (json['progress'] as num).toDouble()
           : null,
@@ -74,12 +90,19 @@ class ContentModel extends HiveObject {
       'id': id,
       'title': title,
       'synopsis': synopsis,
+      'poster_url': posterUrl,
       'posterUrl': posterUrl,
+      'backdrop_url': backdropUrl,
       'backdropUrl': backdropUrl,
       'genre': genre,
+      'avg_rating': rating,
       'rating': rating,
+      'release_year': releaseYear,
       'releaseYear': releaseYear,
+      'duration_minutes': durationMinutes,
       'durationMinutes': durationMinutes,
+      'duration_seconds': durationSeconds,
+      'durationSeconds': durationSeconds,
       'type': type,
       'progress': progress,
     };
@@ -97,6 +120,7 @@ class ContentModel extends HiveObject {
     int? durationMinutes,
     String? type,
     double? progress,
+    int? durationSeconds,
   }) {
     return ContentModel(
       id: id ?? this.id,
@@ -110,6 +134,7 @@ class ContentModel extends HiveObject {
       durationMinutes: durationMinutes ?? this.durationMinutes,
       type: type ?? this.type,
       progress: progress ?? this.progress,
+      durationSeconds: durationSeconds ?? this.durationSeconds,
     );
   }
 }

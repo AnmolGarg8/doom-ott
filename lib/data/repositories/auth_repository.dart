@@ -33,7 +33,32 @@ class RealAuthRepository implements AuthRepository {
     try {
       final response = await dioClient.get('/auth/me');
       if (response.statusCode == 200 && response.data != null) {
-        final user = UserModel.fromJson(response.data as Map<String, dynamic>);
+        final userData = Map<String, dynamic>.from(response.data as Map);
+
+        bool isSubscribed = false;
+        String subscriptionTier = 'Free';
+
+        try {
+          final subResponse = await dioClient.get('/subscription/current');
+          if (subResponse.statusCode == 200 && subResponse.data != null) {
+            final subData = Map<String, dynamic>.from(subResponse.data as Map);
+            final status = subData['status'] as String?;
+            if (status == 'ACTIVE' || status == 'active') {
+              isSubscribed = true;
+              final plan = subData['plan'] != null
+                  ? Map<String, dynamic>.from(subData['plan'] as Map)
+                  : null;
+              if (plan != null) {
+                subscriptionTier = plan['name'] as String? ?? 'Premium';
+              }
+            }
+          }
+        } catch (_) {}
+
+        userData['is_subscribed'] = isSubscribed;
+        userData['subscription_tier'] = subscriptionTier;
+
+        final user = UserModel.fromJson(userData);
         await dioClient.storage.write(
           key: 'user_data',
           value: jsonEncode(user.toJson()),
@@ -54,11 +79,15 @@ class RealAuthRepository implements AuthRepository {
         data: {'phone': phone},
       );
       if (response.statusCode != 200) {
-        final detail = response.data is Map ? response.data['detail'] : 'Failed to send OTP';
+        final detail = response.data is Map
+            ? response.data['detail']
+            : 'Failed to send OTP';
         throw Exception(detail);
       }
     } on DioException catch (e) {
-      final detail = e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']
+          : e.message;
       throw Exception(detail ?? 'Failed to send OTP');
     }
   }
@@ -72,7 +101,9 @@ class RealAuthRepository implements AuthRepository {
       );
       return await _handleTokenResponse(response);
     } on DioException catch (e) {
-      final detail = e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']
+          : e.message;
       throw Exception(detail ?? 'Invalid OTP code');
     }
   }
@@ -86,13 +117,19 @@ class RealAuthRepository implements AuthRepository {
       );
       return await _handleTokenResponse(response);
     } on DioException catch (e) {
-      final detail = e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']
+          : e.message;
       throw Exception(detail ?? 'Login failed');
     }
   }
 
   @override
-  Future<UserModel> signUpWithEmail(String name, String email, String password) async {
+  Future<UserModel> signUpWithEmail(
+    String name,
+    String email,
+    String password,
+  ) async {
     try {
       final response = await dioClient.post(
         '/auth/email/signup',
@@ -100,7 +137,9 @@ class RealAuthRepository implements AuthRepository {
       );
       return await _handleTokenResponse(response);
     } on DioException catch (e) {
-      final detail = e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']
+          : e.message;
       throw Exception(detail ?? 'Sign up failed');
     }
   }
@@ -114,7 +153,9 @@ class RealAuthRepository implements AuthRepository {
       );
       return await _handleTokenResponse(response);
     } on DioException catch (e) {
-      final detail = e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']
+          : e.message;
       throw Exception(detail ?? 'Google authentication failed');
     }
   }
@@ -128,7 +169,9 @@ class RealAuthRepository implements AuthRepository {
       );
       return await _handleTokenResponse(response);
     } on DioException catch (e) {
-      final detail = e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']
+          : e.message;
       throw Exception(detail ?? 'Apple authentication failed');
     }
   }
@@ -154,10 +197,12 @@ class RealAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserModel> login(String email, String password) => loginWithEmail(email, password);
+  Future<UserModel> login(String email, String password) =>
+      loginWithEmail(email, password);
 
   @override
-  Future<UserModel> register(String name, String email, String password) => signUpWithEmail(name, email, password);
+  Future<UserModel> register(String name, String email, String password) =>
+      signUpWithEmail(name, email, password);
 
   Future<UserModel> _handleTokenResponse(Response response) async {
     if (response.statusCode == 200 || response.statusCode == 201) {
@@ -212,7 +257,11 @@ class MockAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<UserModel> signUpWithEmail(String name, String email, String password) async {
+  Future<UserModel> signUpWithEmail(
+    String name,
+    String email,
+    String password,
+  ) async {
     return register(name, email, password);
   }
 

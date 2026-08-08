@@ -35,10 +35,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   bool _isSuccess = false;
   String? _processError;
 
-  final Map<String, double> _validCoupons = {
-    'DOOM50': 0.50,
-    'WELCOME10': 0.10,
-  };
+  final Map<String, double> _validCoupons = {'DOOM50': 0.50, 'WELCOME10': 0.10};
 
   @override
   void dispose() {
@@ -435,9 +432,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: isSelected
-                    ? AppColors.primary
-                    : const Color(0xFF1F1F1F),
+                color: isSelected ? AppColors.primary : const Color(0xFF1F1F1F),
                 width: isSelected ? 2 : 1,
               ),
             ),

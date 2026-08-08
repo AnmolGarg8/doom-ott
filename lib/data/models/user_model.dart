@@ -23,9 +23,17 @@ class UserModel {
       email: json['email'] as String?,
       phone: json['phone'] as String?,
       name: json['name'] as String? ?? 'User',
-      profilePicture: json['avatar_key'] as String? ?? json['profilePicture'] as String?,
-      isSubscribed: json['isSubscribed'] as bool? ?? false,
-      subscriptionTier: json['subscriptionTier'] as String? ?? 'Free',
+      profilePicture:
+          json['profile_picture'] as String? ??
+          json['profilePicture'] as String?,
+      isSubscribed:
+          json['is_subscribed'] as bool? ??
+          json['isSubscribed'] as bool? ??
+          false,
+      subscriptionTier:
+          json['subscription_tier'] as String? ??
+          json['subscriptionTier'] as String? ??
+          'Free',
     );
   }
 
@@ -35,8 +43,11 @@ class UserModel {
       'email': email,
       'phone': phone,
       'name': name,
+      'profile_picture': profilePicture,
       'profilePicture': profilePicture,
+      'is_subscribed': isSubscribed,
       'isSubscribed': isSubscribed,
+      'subscription_tier': subscriptionTier,
       'subscriptionTier': subscriptionTier,
     };
   }

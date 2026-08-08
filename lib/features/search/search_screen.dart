@@ -639,7 +639,7 @@ class _SearchScreenState extends State<SearchScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${item.durationMinutes} mins',
+                        '${item.durationMinutes ?? 0} mins',
                         style: const TextStyle(
                           color: AppColors.muted,
                           fontSize: 11,

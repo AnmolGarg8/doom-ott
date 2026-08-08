@@ -27,10 +27,15 @@ class RealContentRepository implements ContentRepository {
   @override
   Future<List<ContentModel>> getFeaturedContent() async {
     try {
-      final response = await dioClient.get('/content', queryParameters: {'page': 1, 'page_size': 10});
+      final response = await dioClient.get(
+        '/content',
+        queryParameters: {'page': 1, 'page_size': 10},
+      );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
-        return items.map((e) => ContentModel.fromJson(e as Map<String, dynamic>)).toList();
+        return items
+            .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
       return [];
     } catch (e) {
@@ -41,10 +46,15 @@ class RealContentRepository implements ContentRepository {
   @override
   Future<List<ContentModel>> getTrendingContent() async {
     try {
-      final response = await dioClient.get('/content', queryParameters: {'page': 1, 'page_size': 10});
+      final response = await dioClient.get(
+        '/content',
+        queryParameters: {'page': 1, 'page_size': 10},
+      );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
-        return items.map((e) => ContentModel.fromJson(e as Map<String, dynamic>)).toList();
+        return items
+            .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
       return [];
     } catch (e) {
@@ -55,20 +65,72 @@ class RealContentRepository implements ContentRepository {
   @override
   Future<List<ContentModel>> getContinueWatchingContent() async {
     try {
+      final profileBox = await Hive.openBox<dynamic>('user_profiles');
+      final activeProfileId =
+          profileBox.get('active_id', defaultValue: 'p_1') as String;
+
+      final response = await dioClient.get(
+        '/watch-progress',
+        queryParameters: {'profile_id': activeProfileId},
+      );
+
+      final List<ContentModel> list = [];
+      if (response.statusCode == 200 && response.data != null) {
+        final items = response.data as List;
+        for (final item in items) {
+          final map = Map<String, dynamic>.from(item as Map);
+          if (map['content'] != null) {
+            final contentJson = Map<String, dynamic>.from(
+              map['content'] as Map,
+            );
+            final positionSeconds = map['position_seconds'] as int? ?? 0;
+
+            final content = ContentModel.fromJson(contentJson);
+            final duration =
+                content.durationSeconds ??
+                (content.durationMinutes != null
+                    ? content.durationMinutes! * 60
+                    : null);
+            double? progress;
+            if (duration != null && duration > 0) {
+              progress = (positionSeconds / duration).clamp(0.0, 1.0);
+            }
+
+            list.add(content.copyWith(progress: progress));
+          }
+        }
+
+        final box = await Hive.openBox<ContentModel>('continue_watching');
+        await box.clear();
+        for (final item in list) {
+          await box.put(item.id, item);
+        }
+      }
+
       final box = await Hive.openBox<ContentModel>('continue_watching');
       return box.values.toList();
     } catch (_) {
-      return [];
+      try {
+        final box = await Hive.openBox<ContentModel>('continue_watching');
+        return box.values.toList();
+      } catch (_) {
+        return [];
+      }
     }
   }
 
   @override
   Future<List<ContentModel>> getMovies() async {
     try {
-      final response = await dioClient.get('/content', queryParameters: {'type': 'movie', 'page': 1, 'page_size': 20});
+      final response = await dioClient.get(
+        '/content',
+        queryParameters: {'type': 'movie', 'page': 1, 'page_size': 20},
+      );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
-        return items.map((e) => ContentModel.fromJson(e as Map<String, dynamic>)).toList();
+        return items
+            .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
       return [];
     } catch (e) {
@@ -79,10 +141,15 @@ class RealContentRepository implements ContentRepository {
   @override
   Future<List<ContentModel>> getTVShows() async {
     try {
-      final response = await dioClient.get('/content', queryParameters: {'type': 'series', 'page': 1, 'page_size': 20});
+      final response = await dioClient.get(
+        '/content',
+        queryParameters: {'type': 'series', 'page': 1, 'page_size': 20},
+      );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
-        return items.map((e) => ContentModel.fromJson(e as Map<String, dynamic>)).toList();
+        return items
+            .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
       return [];
     } catch (e) {
@@ -93,10 +160,15 @@ class RealContentRepository implements ContentRepository {
   @override
   Future<List<ContentModel>> getShorts() async {
     try {
-      final response = await dioClient.get('/content', queryParameters: {'type': 'short', 'page': 1, 'page_size': 20});
+      final response = await dioClient.get(
+        '/content',
+        queryParameters: {'type': 'short', 'page': 1, 'page_size': 20},
+      );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
-        return items.map((e) => ContentModel.fromJson(e as Map<String, dynamic>)).toList();
+        return items
+            .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
       return [];
     } catch (e) {
@@ -123,7 +195,9 @@ class RealContentRepository implements ContentRepository {
       final response = await dioClient.get('/content/$id/similar');
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data as List;
-        return items.map((e) => ContentModel.fromJson(e as Map<String, dynamic>)).toList();
+        return items
+            .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
       return [];
     } catch (e) {
@@ -135,10 +209,15 @@ class RealContentRepository implements ContentRepository {
   Future<List<ContentModel>> searchContent(String query) async {
     if (query.trim().isEmpty) return [];
     try {
-      final response = await dioClient.get('/content', queryParameters: {'search': query, 'page': 1, 'page_size': 20});
+      final response = await dioClient.get(
+        '/content',
+        queryParameters: {'search': query, 'page': 1, 'page_size': 20},
+      );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
-        return items.map((e) => ContentModel.fromJson(e as Map<String, dynamic>)).toList();
+        return items
+            .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
       return [];
     } catch (e) {
@@ -149,10 +228,15 @@ class RealContentRepository implements ContentRepository {
   @override
   Future<List<ContentModel>> getContentByGenre(String genre) async {
     try {
-      final response = await dioClient.get('/content', queryParameters: {'genre': genre, 'page': 1, 'page_size': 20});
+      final response = await dioClient.get(
+        '/content',
+        queryParameters: {'genre': genre, 'page': 1, 'page_size': 20},
+      );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
-        return items.map((e) => ContentModel.fromJson(e as Map<String, dynamic>)).toList();
+        return items
+            .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
       return [];
     } catch (e) {
@@ -183,7 +267,9 @@ class RealContentRepository implements ContentRepository {
       }
       throw Exception('Failed to fetch playback URL');
     } on DioException catch (e) {
-      final detail = e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']
+          : e.message;
       throw Exception(detail ?? 'Failed to fetch playback URL');
     }
   }

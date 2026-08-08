@@ -22,21 +22,20 @@ class ContentModelAdapter extends TypeAdapter<ContentModel> {
       synopsis: fields[2] as String,
       posterUrl: fields[3] as String,
       backdropUrl: fields[4] as String,
-      genre: fields[5] is List
-          ? (fields[5] as List).cast<String>()
-          : (fields[5] is String ? [fields[5] as String] : <String>[]),
+      genre: (fields[5] as List).cast<String>(),
       rating: fields[6] as String,
       releaseYear: fields[7] as String,
-      durationMinutes: fields[8] as int,
+      durationMinutes: fields[8] as int?,
       type: fields[9] as String,
       progress: fields[10] as double?,
+      durationSeconds: fields[11] as int?,
     );
   }
 
   @override
   void write(BinaryWriter writer, ContentModel obj) {
     writer
-      ..writeByte(11)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -58,7 +57,9 @@ class ContentModelAdapter extends TypeAdapter<ContentModel> {
       ..writeByte(9)
       ..write(obj.type)
       ..writeByte(10)
-      ..write(obj.progress);
+      ..write(obj.progress)
+      ..writeByte(11)
+      ..write(obj.durationSeconds);
   }
 
   @override

@@ -24,16 +24,46 @@ class SubscriptionPlanModel {
   });
 
   factory SubscriptionPlanModel.fromJson(Map<String, dynamic> json) {
+    final features = List<String>.from(json['features'] as List? ?? []);
+    String maxQuality = '1080p';
+    int maxScreens = 1;
+    for (final f in features) {
+      if (f.toLowerCase().contains('4k') ||
+          f.toLowerCase().contains('ultra hd')) {
+        maxQuality = '4K UHD';
+      } else if (f.toLowerCase().contains('devices') ||
+          f.toLowerCase().contains('screens') ||
+          f.toLowerCase().contains('screen')) {
+        final match = RegExp(r'\d+').firstMatch(f);
+        if (match != null) {
+          maxScreens = int.parse(match.group(0)!);
+        }
+      }
+    }
+
+    final durationDays =
+        json['duration_days'] as int? ?? json['durationDays'] as int? ?? 30;
+    final interval = durationDays >= 365 ? 'yearly' : 'monthly';
+
     return SubscriptionPlanModel(
       id: json['id'] as String,
       name: json['name'] as String,
-      description: json['description'] as String? ?? '',
-      price: (json['price'] as num).toDouble(),
+      description:
+          json['description'] as String? ??
+          (features.isNotEmpty ? features.join(', ') : ''),
+      price: (json['price'] as num?)?.toDouble() ?? 0.0,
       currency: json['currency'] as String? ?? 'INR',
-      interval: json['interval'] as String? ?? 'monthly',
-      intervalCount: json['interval_count'] as int? ?? 1,
-      maxScreens: json['max_screens'] as int? ?? 1,
-      maxQuality: json['max_quality'] as String? ?? '1080p',
+      interval: json['interval'] as String? ?? interval,
+      intervalCount:
+          json['interval_count'] as int? ?? json['intervalCount'] as int? ?? 1,
+      maxScreens:
+          json['max_screens'] as int? ??
+          json['maxScreens'] as int? ??
+          maxScreens,
+      maxQuality:
+          json['max_quality'] as String? ??
+          json['maxQuality'] as String? ??
+          maxQuality,
     );
   }
 }
@@ -60,12 +90,20 @@ class TransactionHistoryModel {
   factory TransactionHistoryModel.fromJson(Map<String, dynamic> json) {
     return TransactionHistoryModel(
       id: json['id'] as String,
-      amount: (json['amount'] as num).toDouble(),
+      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
       currency: json['currency'] as String? ?? 'INR',
       status: json['status'] as String? ?? 'success',
-      providerPaymentId: json['provider_payment_id'] as String? ?? '',
-      createdAt: json['created_at'] as String? ?? '',
-      planName: json['plan_name'] as String? ?? 'DOOM Subscription',
+      providerPaymentId:
+          json['provider_payment_id'] as String? ??
+          json['providerPaymentId'] as String? ??
+          json['gateway_ref'] as String? ??
+          '',
+      createdAt:
+          json['created_at'] as String? ?? json['createdAt'] as String? ?? '',
+      planName:
+          json['plan_name'] as String? ??
+          json['planName'] as String? ??
+          'DOOM Subscription',
     );
   }
 }
@@ -93,7 +131,9 @@ class RealSubscriptionRepository implements SubscriptionRepository {
       if (response.statusCode == 200 && response.data != null) {
         final list = response.data as List;
         return list
-            .map((e) => SubscriptionPlanModel.fromJson(e as Map<String, dynamic>))
+            .map(
+              (e) => SubscriptionPlanModel.fromJson(e as Map<String, dynamic>),
+            )
             .toList();
       }
       return [];
@@ -103,7 +143,10 @@ class RealSubscriptionRepository implements SubscriptionRepository {
   }
 
   @override
-  Future<Map<String, dynamic>> checkout(String planId, {String? couponCode}) async {
+  Future<Map<String, dynamic>> checkout(
+    String planId, {
+    String? couponCode,
+  }) async {
     final response = await dioClient.post(
       '/payment/checkout',
       data: {
@@ -139,7 +182,10 @@ class RealSubscriptionRepository implements SubscriptionRepository {
       if (response.statusCode == 200 && response.data != null) {
         final list = response.data as List;
         return list
-            .map((e) => TransactionHistoryModel.fromJson(e as Map<String, dynamic>))
+            .map(
+              (e) =>
+                  TransactionHistoryModel.fromJson(e as Map<String, dynamic>),
+            )
             .toList();
       }
       return [];
