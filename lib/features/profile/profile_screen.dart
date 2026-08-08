@@ -104,7 +104,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        user.email,
+                        user.email ?? user.phone ?? '',
                         style: const TextStyle(
                           fontSize: 14,
                           color: AppColors.muted,

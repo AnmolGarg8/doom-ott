@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/colors.dart';
+import '../../data/repositories/auth_repository.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -36,22 +38,24 @@ class _SplashScreenState extends State<SplashScreen>
     _navigateToNext();
   }
 
-  void _navigateToNext() {
-    Future.delayed(const Duration(seconds: 2), () {
-      if (mounted) {
-        final router = GoRouter.of(context);
-        // TODO: Persisted auth state check goes here once backend/secure storage is connected.
-        // E.g.:
-        // final bool isLoggedIn = await authRepository.checkSession();
-        // if (isLoggedIn) {
-        //   router.go('/home');
-        // } else {
-        //   router.go('/onboarding');
-        // }
-        // For now, redirect to Onboarding on every launch.
-        router.go('/onboarding');
+  void _navigateToNext() async {
+    await Future.delayed(const Duration(seconds: 2));
+    if (mounted) {
+      try {
+        final authRepository = context.read<AuthRepository>();
+        final user = await authRepository.getCurrentUser();
+        if (!mounted) return;
+        if (user != null) {
+          context.go('/home');
+        } else {
+          context.go('/onboarding');
+        }
+      } catch (_) {
+        if (mounted) {
+          context.go('/onboarding');
+        }
       }
-    });
+    }
   }
 
   @override

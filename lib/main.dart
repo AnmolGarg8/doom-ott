@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:media_kit/media_kit.dart';
+import 'core/network/dio_client.dart';
 import 'core/routing/app_router.dart';
 import 'core/theme/theme_data.dart';
 import 'data/models/content_model.dart';
@@ -22,8 +23,9 @@ void main() async {
   await Hive.initFlutter();
   Hive.registerAdapter(ContentModelAdapter());
 
-  // Instantiate Mock Repositories
-  final authRepository = MockAuthRepository();
+  // Instantiate DioClient and Real Repositories
+  final dioClient = DioClient(baseUrl: 'http://10.0.2.2:8000');
+  final authRepository = RealAuthRepository(dioClient: dioClient);
   final contentRepository = MockContentRepository();
   final watchlistRepository = HiveWatchlistRepository();
 

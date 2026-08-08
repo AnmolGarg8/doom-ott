@@ -20,8 +20,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
 
   Future<void> _onAppStarted(AppStarted event, Emitter<AuthState> emit) async {
     emit(AuthLoading());
-    await Future.delayed(const Duration(milliseconds: 1000));
-    emit(Unauthenticated());
+    try {
+      final user = await authRepository.getCurrentUser();
+      if (user != null) {
+        emit(Authenticated(user));
+      } else {
+        emit(Unauthenticated());
+      }
+    } catch (_) {
+      emit(Unauthenticated());
+    }
   }
 
   Future<void> _onSendOtp(
@@ -29,9 +37,13 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    await Future.delayed(const Duration(milliseconds: 1500));
-    _currentPhoneNumber = event.phoneNumber;
-    emit(OtpSentState(event.phoneNumber));
+    try {
+      await authRepository.sendOtp(event.phoneNumber);
+      _currentPhoneNumber = event.phoneNumber;
+      emit(OtpSentState(event.phoneNumber));
+    } catch (e) {
+      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
+    }
   }
 
   Future<void> _onVerifyOtp(
@@ -39,19 +51,17 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    await Future.delayed(const Duration(milliseconds: 1500));
-    if (event.code == '111111') {
-      emit(AuthError("Wrong OTP entered. Please try again."));
-      emit(OtpSentState(_currentPhoneNumber ?? "+91 9999999999"));
-    } else {
-      _tempUser = UserModel(
-        id: 'usr_mock_otp',
-        email: 'otp_user@doom.com',
-        name: 'New Streamer',
-        isSubscribed: false,
-        subscriptionTier: 'Free',
-      );
-      emit(ProfileSetupRequiredState(_tempUser!));
+    try {
+      final phone = _currentPhoneNumber ?? "+19876543210";
+      final user = await authRepository.verifyOtp(phone, event.code);
+      _tempUser = user;
+      emit(Authenticated(user));
+    } catch (e) {
+      final msg = e.toString().replaceAll('Exception: ', '');
+      emit(AuthError(msg));
+      if (_currentPhoneNumber != null) {
+        emit(OtpSentState(_currentPhoneNumber!));
+      }
     }
   }
 
@@ -60,18 +70,25 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    await Future.delayed(const Duration(milliseconds: 1500));
-    _tempUser = UserModel(
-      id: 'usr_mock_email',
-      email: event.email,
-      name: event.email.split('@').first.toUpperCase(),
-      isSubscribed: false,
-      subscriptionTier: 'Free',
-    );
-    if (event.isSignUp) {
-      emit(ProfileSetupRequiredState(_tempUser!));
-    } else {
-      emit(Authenticated(_tempUser!));
+    try {
+      final UserModel user;
+      if (event.isSignUp) {
+        final name = event.email.split('@').first;
+        user = await authRepository.signUpWithEmail(
+          name,
+          event.email,
+          event.password,
+        );
+      } else {
+        user = await authRepository.loginWithEmail(
+          event.email,
+          event.password,
+        );
+      }
+      _tempUser = user;
+      emit(Authenticated(user));
+    } catch (e) {
+      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
     }
   }
 
@@ -80,14 +97,10 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    await Future.delayed(const Duration(milliseconds: 1500));
     if (_tempUser != null) {
       final updatedUser = _tempUser!.copyWith(
         name: event.name,
-        // We will store the avatar index in profilePicture slot as a string ID
         profilePicture: event.avatarIndex.toString(),
-        isSubscribed: false,
-        subscriptionTier: 'Free',
       );
       emit(Authenticated(updatedUser));
     } else {
@@ -95,9 +108,14 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     }
   }
 
-  Future<void> _onLogout(LogoutRequested event, Emitter<AuthState> emit) async {
+  Future<void> _onLogout(
+    LogoutRequested event,
+    Emitter<AuthState> emit,
+  ) async {
     emit(AuthLoading());
-    await Future.delayed(const Duration(milliseconds: 800));
+    try {
+      await authRepository.logout();
+    } catch (_) {}
     _tempUser = null;
     emit(Unauthenticated());
   }

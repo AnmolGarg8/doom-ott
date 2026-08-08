@@ -97,7 +97,9 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
       ),
       body: BlocConsumer<AuthBloc, AuthState>(
         listener: (context, state) {
-          if (state is ProfileSetupRequiredState) {
+          if (state is Authenticated) {
+            context.go('/home');
+          } else if (state is ProfileSetupRequiredState) {
             context.go('/auth/profile-setup');
           } else if (state is AuthError) {
             setState(() {
