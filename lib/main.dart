@@ -8,6 +8,7 @@ import 'core/theme/theme_data.dart';
 import 'data/models/content_model.dart';
 import 'data/repositories/auth_repository.dart';
 import 'data/repositories/content_repository.dart';
+import 'data/repositories/subscription_repository.dart';
 import 'data/repositories/watchlist_repository.dart';
 import 'features/auth/bloc/auth_bloc.dart';
 import 'features/home/bloc/content_bloc.dart';
@@ -27,6 +28,7 @@ void main() async {
   final authRepository = RealAuthRepository(dioClient: dioClient);
   final contentRepository = RealContentRepository(dioClient: dioClient);
   final watchlistRepository = RealWatchlistRepository(dioClient: dioClient);
+  final subscriptionRepository = RealSubscriptionRepository(dioClient: dioClient);
 
   runApp(
     MultiRepositoryProvider(
@@ -35,6 +37,9 @@ void main() async {
         RepositoryProvider<ContentRepository>.value(value: contentRepository),
         RepositoryProvider<WatchlistRepository>.value(
           value: watchlistRepository,
+        ),
+        RepositoryProvider<SubscriptionRepository>.value(
+          value: subscriptionRepository,
         ),
       ],
       child: MultiBlocProvider(

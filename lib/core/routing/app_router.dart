@@ -169,6 +169,10 @@ class AppRouter {
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
           final extra = state.extra as Map<String, dynamic>? ?? {};
+          final planId =
+              extra['planId'] as String? ??
+              state.uri.queryParameters['planId'] ??
+              '';
           final planName =
               extra['planName'] as String? ??
               state.uri.queryParameters['planName'] ??
@@ -177,7 +181,11 @@ class AppRouter {
               (extra['price'] as num?)?.toDouble() ??
               double.tryParse(state.uri.queryParameters['price'] ?? '199') ??
               199.0;
-          return PaymentScreen(planName: planName, price: price);
+          return PaymentScreen(
+            planId: planId,
+            planName: planName,
+            price: price,
+          );
         },
       ),
       GoRoute(

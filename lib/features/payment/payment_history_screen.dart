@@ -1,25 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/colors.dart';
-
-class TransactionItem {
-  final String id;
-  final String date;
-  final String planName;
-  final double amount;
-  final String status; // 'Success', 'Failed', 'Refunded'
-  final String paymentMethod;
-
-  const TransactionItem({
-    required this.id,
-    required this.date,
-    required this.planName,
-    required this.amount,
-    required this.status,
-    required this.paymentMethod,
-  });
-}
+import '../../data/repositories/subscription_repository.dart';
 
 class PaymentHistoryScreen extends StatefulWidget {
   const PaymentHistoryScreen({super.key});
@@ -30,50 +14,42 @@ class PaymentHistoryScreen extends StatefulWidget {
 
 class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
   final Set<int> _expandedIndexes = {};
+  bool _isLoading = true;
+  List<TransactionHistoryModel> _transactions = [];
 
-  final List<TransactionItem> _transactions = const [
-    TransactionItem(
-      id: 'TXN827394819',
-      date: 'Aug 01, 2026',
-      planName: 'Quarterly Premium Upgrade',
-      amount: 499.0,
-      status: 'Success',
-      paymentMethod: 'UPI (GPay)',
-    ),
-    TransactionItem(
-      id: 'TXN298472918',
-      date: 'May 01, 2026',
-      planName: 'Monthly Basic Auto-Renewal',
-      amount: 199.0,
-      status: 'Success',
-      paymentMethod: 'Visa Card (....4819)',
-    ),
-    TransactionItem(
-      id: 'TXN918471029',
-      date: 'Apr 01, 2026',
-      planName: 'Monthly Basic Renewal',
-      amount: 199.0,
-      status: 'Failed',
-      paymentMethod: 'UPI (PhonePe)',
-    ),
-    TransactionItem(
-      id: 'TXN710398417',
-      date: 'Jan 01, 2026',
-      planName: 'Annual Ultimate Bundle',
-      amount: 1499.0,
-      status: 'Refunded',
-      paymentMethod: 'Netbanking (HDFC)',
-    ),
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadHistory();
+  }
+
+  Future<void> _loadHistory() async {
+    setState(() => _isLoading = true);
+    try {
+      final repo = RepositoryProvider.of<SubscriptionRepository>(context);
+      final history = await repo.getPaymentHistory();
+      if (mounted) {
+        setState(() {
+          _transactions = history;
+          _isLoading = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
 
   Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Success':
-        return const Color(0xFF2E7D32); // Green
-      case 'Failed':
-        return AppColors.error; // Red
-      case 'Refunded':
-        return const Color(0xFF1565C0); // Blue
+    switch (status.toLowerCase()) {
+      case 'success':
+      case 'completed':
+        return const Color(0xFF2E7D32);
+      case 'failed':
+        return AppColors.error;
+      case 'refunded':
+        return const Color(0xFF1565C0);
       default:
         return AppColors.muted;
     }
@@ -105,7 +81,11 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
           style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
         ),
       ),
-      body: _transactions.isEmpty
+      body: _isLoading
+          ? const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            )
+          : _transactions.isEmpty
           ? const Center(
               child: Text(
                 'No past transaction receipts found.',
@@ -128,7 +108,6 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                   ),
                   child: Column(
                     children: [
-                      // Header clickable bar
                       ListTile(
                         onTap: () => _toggleExpand(index),
                         title: Row(
@@ -162,7 +141,9 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                txn.date,
+                                txn.createdAt.length > 10
+                                    ? txn.createdAt.substring(0, 10)
+                                    : txn.createdAt,
                                 style: const TextStyle(
                                   color: AppColors.muted,
                                   fontSize: 12,
@@ -180,7 +161,7 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                                   borderRadius: BorderRadius.circular(4),
                                 ),
                                 child: Text(
-                                  txn.status,
+                                  txn.status.toUpperCase(),
                                   style: TextStyle(
                                     color: _getStatusColor(txn.status),
                                     fontSize: 10,
@@ -199,7 +180,6 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                         ),
                       ),
 
-                      // Expandable Invoice details block
                       if (isExpanded) ...[
                         const Padding(
                           padding: EdgeInsets.symmetric(horizontal: 16.0),
@@ -213,8 +193,10 @@ class _PaymentHistoryScreenState extends State<PaymentHistoryScreen> {
                               _buildReceiptRow('Transaction ID', txn.id),
                               const SizedBox(height: 8),
                               _buildReceiptRow(
-                                'Payment Method',
-                                txn.paymentMethod,
+                                'Payment ID',
+                                txn.providerPaymentId.isNotEmpty
+                                    ? txn.providerPaymentId
+                                    : 'pay_mock',
                               ),
                               const SizedBox(height: 8),
                               _buildReceiptRow(

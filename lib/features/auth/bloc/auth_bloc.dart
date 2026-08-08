@@ -16,6 +16,19 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<EmailAuthRequested>(_onEmailAuth);
     on<ProfileSetupRequested>(_onProfileSetup);
     on<LogoutRequested>(_onLogout);
+    on<RefreshUserRequested>(_onRefreshUser);
+  }
+
+  Future<void> _onRefreshUser(
+    RefreshUserRequested event,
+    Emitter<AuthState> emit,
+  ) async {
+    try {
+      final user = await authRepository.getCurrentUser();
+      if (user != null) {
+        emit(Authenticated(user));
+      }
+    } catch (_) {}
   }
 
   Future<void> _onAppStarted(AppStarted event, Emitter<AuthState> emit) async {

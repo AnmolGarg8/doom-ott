@@ -35,3 +35,5 @@ class UpgradeRequested extends AuthEvent {
   final String tier;
   UpgradeRequested({required this.tier});
 }
+
+class RefreshUserRequested extends AuthEvent {}

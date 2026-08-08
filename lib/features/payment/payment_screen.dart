@@ -1,14 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../data/repositories/subscription_repository.dart';
+import '../auth/bloc/auth_bloc.dart';
+import '../auth/bloc/auth_event.dart';
 
 class PaymentScreen extends StatefulWidget {
+  final String planId;
   final String planName;
   final double price;
 
-  const PaymentScreen({super.key, required this.planName, required this.price});
+  const PaymentScreen({
+    super.key,
+    required this.planId,
+    required this.planName,
+    required this.price,
+  });
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -17,17 +27,17 @@ class PaymentScreen extends StatefulWidget {
 class _PaymentScreenState extends State<PaymentScreen> {
   final TextEditingController _couponController = TextEditingController();
 
-  // Selections & States
   String _selectedMethod = 'UPI';
   String? _appliedCoupon;
   double _discount = 0.0;
   String? _couponError;
   bool _isProcessing = false;
   bool _isSuccess = false;
+  String? _processError;
 
   final Map<String, double> _validCoupons = {
-    'DOOM50': 0.50, // 50% Discount
-    'WELCOME10': 0.10, // 10% Discount
+    'DOOM50': 0.50,
+    'WELCOME10': 0.10,
   };
 
   @override
@@ -65,18 +75,54 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Future<void> _processPayment() async {
     setState(() {
       _isProcessing = true;
+      _processError = null;
     });
 
-    // Simulate Payment Processing (Razorpay SDK delay)
-    // TODO: Integrate Razorpay SDK payment sheet flow here when real backend is connected.
-    // E.g., Razorpay.open(options);
-    await Future.delayed(const Duration(seconds: 2));
+    try {
+      final repo = RepositoryProvider.of<SubscriptionRepository>(context);
 
-    if (mounted) {
-      setState(() {
-        _isProcessing = false;
-        _isSuccess = true;
-      });
+      // 1. Checkout
+      final checkoutData = await repo.checkout(
+        widget.planId,
+        couponCode: _appliedCoupon,
+      );
+
+      final orderId = checkoutData['order_id'] as String? ?? 'order_mock_123';
+
+      // 2. Verify payment (PAYMENT_PROVIDER=mock always succeeds)
+      final success = await repo.verifyPayment(
+        orderId: orderId,
+        paymentId: 'pay_mock_${DateTime.now().millisecondsSinceEpoch}',
+        signature: 'mock_signature',
+      );
+
+      if (success) {
+        // Refresh User profile in AuthBloc
+        if (mounted) {
+          context.read<AuthBloc>().add(RefreshUserRequested());
+        }
+
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+            _isSuccess = true;
+          });
+        }
+      } else {
+        if (mounted) {
+          setState(() {
+            _isProcessing = false;
+            _processError = 'Payment verification failed. Please try again.';
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isProcessing = false;
+          _processError = e.toString().replaceAll('Exception: ', '');
+        });
+      }
     }
   }
 
@@ -121,6 +167,22 @@ class _PaymentScreenState extends State<PaymentScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  if (_processError != null) ...[
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: AppColors.error.withValues(alpha: 0.15),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.error),
+                      ),
+                      child: Text(
+                        _processError!,
+                        style: const TextStyle(color: AppColors.error),
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                  ],
+
                   // 1. Order Summary Card
                   _buildOrderSummaryCard(totalAmount),
                   const SizedBox(height: 24),
@@ -357,77 +419,68 @@ class _PaymentScreenState extends State<PaymentScreen> {
       },
     ];
 
-    return RadioGroup<String>(
-      groupValue: _selectedMethod,
-      onChanged: (val) {
-        if (val != null) {
-          setState(() {
-            _selectedMethod = val;
-          });
-        }
-      },
-      child: Column(
-        children: methods.map((m) {
-          final isSelected = m['name'] == _selectedMethod;
-          return GestureDetector(
-            onTap: () {
-              setState(() {
-                _selectedMethod = m['name'] as String;
-              });
-            },
-            child: Container(
-              margin: const EdgeInsets.only(bottom: 12),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.surface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: isSelected
-                      ? AppColors.primary
-                      : const Color(0xFF1F1F1F),
-                  width: isSelected ? 2 : 1,
-                ),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    m['icon'] as IconData,
-                    color: isSelected ? AppColors.primary : Colors.white70,
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          m['name'] as String,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          m['subtitle'] as String,
-                          style: const TextStyle(
-                            color: AppColors.muted,
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Radio<String>(
-                    value: m['name'] as String,
-                    activeColor: AppColors.primary,
-                  ),
-                ],
+    return Column(
+      children: methods.map((m) {
+        final isSelected = m['name'] == _selectedMethod;
+        return GestureDetector(
+          onTap: () {
+            setState(() {
+              _selectedMethod = m['name'] as String;
+            });
+          },
+          child: Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: isSelected
+                    ? AppColors.primary
+                    : const Color(0xFF1F1F1F),
+                width: isSelected ? 2 : 1,
               ),
             ),
-          );
-        }).toList(),
-      ),
+            child: Row(
+              children: [
+                Icon(
+                  m['icon'] as IconData,
+                  color: isSelected ? AppColors.primary : Colors.white70,
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        m['name'] as String,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        m['subtitle'] as String,
+                        style: const TextStyle(
+                          color: AppColors.muted,
+                          fontSize: 12,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  isSelected ? LucideIcons.checkCircle2 : LucideIcons.circle,
+                  color: isSelected ? AppColors.primary : Colors.white24,
+                  size: 22,
+                ),
+              ],
+            ),
+          ),
+        );
+      }).toList(),
     );
   }
 
@@ -441,7 +494,6 @@ class _PaymentScreenState extends State<PaymentScreen> {
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              // Animated Scale Checkmark
               const Icon(
                 LucideIcons.checkCircle2,
                 color: AppColors.primary,
