@@ -1,3 +1,5 @@
+import '../../../data/models/user_model.dart';
+
 abstract class AuthEvent {}
 
 class AppStarted extends AuthEvent {}
@@ -37,3 +39,8 @@ class UpgradeRequested extends AuthEvent {
 }
 
 class RefreshUserRequested extends AuthEvent {}
+
+class SessionRestored extends AuthEvent {
+  final UserModel user;
+  SessionRestored(this.user);
+}

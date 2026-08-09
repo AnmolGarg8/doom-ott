@@ -78,21 +78,28 @@ void main() {
       Hive.registerAdapter(ContentModelAdapter());
 
       // One-time cache migration / version check
-      const int currentCacheVersion = 2;
+      const int currentCacheVersion = 3;
       final appBox = await Hive.openBox<dynamic>('app_settings');
       final int storedCacheVersion =
           appBox.get('cache_version', defaultValue: 0) as int;
       if (storedCacheVersion < currentCacheVersion) {
         try {
-          final cwBox = await Hive.openBox<ContentModel>('continue_watching');
-          await cwBox.clear();
+          await Hive.deleteBoxFromDisk('continue_watching');
+        } catch (e) {
+          debugPrint('Failed to delete continue_watching box: $e');
+        }
 
-          final wlBox = await Hive.openBox<ContentModel>('watchlist');
-          await wlBox.clear();
+        try {
+          await Hive.deleteBoxFromDisk('watchlist');
+        } catch (e) {
+          debugPrint('Failed to delete watchlist box: $e');
+        }
 
-          final upBox = await Hive.openBox<dynamic>('user_profiles');
-          await upBox.clear();
-        } catch (_) {}
+        try {
+          await Hive.deleteBoxFromDisk('user_profiles');
+        } catch (e) {
+          debugPrint('Failed to delete user_profiles box: $e');
+        }
 
         await appBox.put('cache_version', currentCacheVersion);
       }

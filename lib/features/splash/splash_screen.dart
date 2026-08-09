@@ -4,6 +4,8 @@ import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/theme/colors.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../auth/bloc/auth_bloc.dart';
+import '../auth/bloc/auth_event.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -49,6 +51,9 @@ class _SplashScreenState extends State<SplashScreen>
         if (user != null) {
           final profileBox = await Hive.openBox<dynamic>('user_profiles');
           if (!mounted) return;
+          
+          context.read<AuthBloc>().add(SessionRestored(user));
+
           final keys = profileBox.keys.where((k) => k != 'active_id').toList();
           final activeId = profileBox.get('active_id') as String?;
           if (keys.isEmpty || activeId == null) {

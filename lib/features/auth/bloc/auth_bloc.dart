@@ -17,6 +17,15 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     on<ProfileSetupRequested>(_onProfileSetup);
     on<LogoutRequested>(_onLogout);
     on<RefreshUserRequested>(_onRefreshUser);
+    on<SessionRestored>(_onSessionRestored);
+  }
+
+  void _onSessionRestored(
+    SessionRestored event,
+    Emitter<AuthState> emit,
+  ) {
+    _tempUser = event.user;
+    emit(Authenticated(event.user));
   }
 
   Future<void> _onRefreshUser(
