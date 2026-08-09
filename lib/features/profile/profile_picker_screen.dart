@@ -5,6 +5,8 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/colors.dart';
 import '../../data/repositories/auth_repository.dart';
+import '../home/bloc/content_bloc.dart';
+import '../home/bloc/content_event.dart';
 
 class ProfilePickerScreen extends StatefulWidget {
   final bool manageMode;
@@ -75,6 +77,7 @@ class _ProfilePickerScreenState extends State<ProfilePickerScreen> {
       // Set active profile and go to home
       await _profileBox.put('active_id', profile['id']);
       if (mounted) {
+        context.read<ContentBloc>().add(LoadHomeContent());
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Switched to profile: ${profile['name']}'),

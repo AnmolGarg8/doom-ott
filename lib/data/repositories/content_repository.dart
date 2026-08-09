@@ -24,12 +24,35 @@ class RealContentRepository implements ContentRepository {
 
   RealContentRepository({required this.dioClient});
 
+  Future<bool> _isKidsMode() async {
+    try {
+      final profileBox = await Hive.openBox<dynamic>('user_profiles');
+      final activeProfileId = profileBox.get('active_id') as String?;
+      if (activeProfileId != null) {
+        final profile = profileBox.get(activeProfileId) as Map?;
+        if (profile != null) {
+          return profile['isKids'] as bool? ?? false;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  Future<Map<String, dynamic>> _buildQueryParams(Map<String, dynamic> base) async {
+    final Map<String, dynamic> params = Map<String, dynamic>.from(base);
+    final kidsMode = await _isKidsMode();
+    if (kidsMode) {
+      params['kids_mode'] = true;
+    }
+    return params;
+  }
+
   @override
   Future<List<ContentModel>> getFeaturedContent() async {
     try {
       final response = await dioClient.get(
         '/content',
-        queryParameters: {'page': 1, 'page_size': 10},
+        queryParameters: await _buildQueryParams({'page': 1, 'page_size': 10}),
       );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
@@ -48,7 +71,7 @@ class RealContentRepository implements ContentRepository {
     try {
       final response = await dioClient.get(
         '/content',
-        queryParameters: {'page': 1, 'page_size': 10},
+        queryParameters: await _buildQueryParams({'page': 1, 'page_size': 10}),
       );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
@@ -73,7 +96,7 @@ class RealContentRepository implements ContentRepository {
 
       final response = await dioClient.get(
         '/watch-progress',
-        queryParameters: {'profile_id': activeProfileId},
+        queryParameters: await _buildQueryParams({'profile_id': activeProfileId}),
       );
 
       final List<ContentModel> list = [];
@@ -111,7 +134,7 @@ class RealContentRepository implements ContentRepository {
 
       final box = await Hive.openBox<ContentModel>('continue_watching');
       return box.values.toList();
-    } catch (_) {
+    } catch (e) {
       try {
         final box = await Hive.openBox<ContentModel>('continue_watching');
         return box.values.toList();
@@ -126,7 +149,7 @@ class RealContentRepository implements ContentRepository {
     try {
       final response = await dioClient.get(
         '/content',
-        queryParameters: {'type': 'movie', 'page': 1, 'page_size': 20},
+        queryParameters: await _buildQueryParams({'type': 'movie', 'page': 1, 'page_size': 20}),
       );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
@@ -145,7 +168,7 @@ class RealContentRepository implements ContentRepository {
     try {
       final response = await dioClient.get(
         '/content',
-        queryParameters: {'type': 'series', 'page': 1, 'page_size': 20},
+        queryParameters: await _buildQueryParams({'type': 'series', 'page': 1, 'page_size': 20}),
       );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
@@ -164,7 +187,7 @@ class RealContentRepository implements ContentRepository {
     try {
       final response = await dioClient.get(
         '/content',
-        queryParameters: {'type': 'short', 'page': 1, 'page_size': 20},
+        queryParameters: await _buildQueryParams({'type': 'short', 'page': 1, 'page_size': 20}),
       );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
@@ -181,20 +204,34 @@ class RealContentRepository implements ContentRepository {
   @override
   Future<ContentModel?> getContentById(String id) async {
     try {
-      final response = await dioClient.get('/content/$id');
+      final response = await dioClient.get(
+        '/content/$id',
+        queryParameters: await _buildQueryParams({}),
+      );
       if (response.statusCode == 200 && response.data != null) {
         return ContentModel.fromJson(response.data as Map<String, dynamic>);
       }
       return null;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 403) {
+        throw Exception("This title isn't available in Kids Mode");
+      }
+      final detail = e.response?.data is Map
+          ? e.response?.data['detail']
+          : e.message;
+      throw Exception(detail ?? 'Failed to fetch content details');
     } catch (e) {
-      return null;
+      rethrow;
     }
   }
 
   @override
   Future<List<ContentModel>> getSimilarContent(String id) async {
     try {
-      final response = await dioClient.get('/content/$id/similar');
+      final response = await dioClient.get(
+        '/content/$id/similar',
+        queryParameters: await _buildQueryParams({}),
+      );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data as List;
         return items
@@ -213,7 +250,7 @@ class RealContentRepository implements ContentRepository {
     try {
       final response = await dioClient.get(
         '/content',
-        queryParameters: {'search': query, 'page': 1, 'page_size': 20},
+        queryParameters: await _buildQueryParams({'search': query, 'page': 1, 'page_size': 20}),
       );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;
@@ -232,7 +269,7 @@ class RealContentRepository implements ContentRepository {
     try {
       final response = await dioClient.get(
         '/content',
-        queryParameters: {'genre': genre, 'page': 1, 'page_size': 20},
+        queryParameters: await _buildQueryParams({'genre': genre, 'page': 1, 'page_size': 20}),
       );
       if (response.statusCode == 200 && response.data != null) {
         final items = response.data['items'] as List;

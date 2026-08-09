@@ -112,7 +112,7 @@ abstract class SubscriptionRepository {
   Future<List<SubscriptionPlanModel>> getPlans();
   Future<Map<String, dynamic>> checkout(String planId, {String? couponCode});
   Future<bool> verifyPayment({
-    required String orderId,
+    required String transactionId,
     required String paymentId,
     required String signature,
   });
@@ -128,16 +128,17 @@ class RealSubscriptionRepository implements SubscriptionRepository {
   Future<List<SubscriptionPlanModel>> getPlans() async {
     try {
       final response = await dioClient.get('/subscription/plans');
+      final List<SubscriptionPlanModel> plans = [];
       if (response.statusCode == 200 && response.data != null) {
-        final list = response.data as List;
-        return list
-            .map(
-              (e) => SubscriptionPlanModel.fromJson(e as Map<String, dynamic>),
-            )
-            .toList();
+        final items = response.data as List;
+        for (final item in items) {
+          plans.add(
+            SubscriptionPlanModel.fromJson(Map<String, dynamic>.from(item as Map)),
+          );
+        }
       }
-      return [];
-    } catch (e) {
+      return plans;
+    } catch (_) {
       return [];
     }
   }
@@ -160,14 +161,14 @@ class RealSubscriptionRepository implements SubscriptionRepository {
 
   @override
   Future<bool> verifyPayment({
-    required String orderId,
+    required String transactionId,
     required String paymentId,
     required String signature,
   }) async {
     final response = await dioClient.post(
       '/payment/verify',
       data: {
-        'order_id': orderId,
+        'transaction_id': transactionId,
         'payment_id': paymentId,
         'signature': signature,
       },

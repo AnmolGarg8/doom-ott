@@ -6,6 +6,8 @@ import 'package:lucide_icons/lucide_icons.dart';
 import '../auth/bloc/auth_bloc.dart';
 import '../auth/bloc/auth_event.dart';
 import '../auth/bloc/auth_state.dart';
+import '../home/bloc/content_bloc.dart';
+import '../home/bloc/content_event.dart';
 import '../../core/theme/colors.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -253,6 +255,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _activeProfileId = profile['id'];
                       });
                       if (context.mounted) {
+                        context.read<ContentBloc>().add(LoadHomeContent());
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(

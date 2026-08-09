@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../theme/colors.dart';
 
 class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
@@ -28,11 +29,30 @@ class CustomAppBar extends StatefulWidget implements PreferredSizeWidget {
 
 class _CustomAppBarState extends State<CustomAppBar> {
   double _opacity = 0.0;
+  bool _isKids = false;
 
   @override
   void initState() {
     super.initState();
     widget.scrollController?.addListener(_onScroll);
+    _checkKidsMode();
+  }
+
+  void _checkKidsMode() {
+    try {
+      if (Hive.isBoxOpen('user_profiles')) {
+        final box = Hive.box('user_profiles');
+        final activeId = box.get('active_id') as String?;
+        if (activeId != null) {
+          final profile = box.get(activeId) as Map?;
+          if (profile != null) {
+            setState(() {
+              _isKids = profile['isKids'] as bool? ?? false;
+            });
+          }
+        }
+      }
+    } catch (_) {}
   }
 
   @override
@@ -42,6 +62,7 @@ class _CustomAppBarState extends State<CustomAppBar> {
       oldWidget.scrollController?.removeListener(_onScroll);
       widget.scrollController?.addListener(_onScroll);
     }
+    _checkKidsMode();
   }
 
   @override
@@ -81,14 +102,45 @@ class _CustomAppBarState extends State<CustomAppBar> {
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             widget.title ??
-                const Text(
-                  'DOOM OTT',
-                  style: TextStyle(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w900,
-                    color: AppColors.primary,
-                    letterSpacing: 2,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text(
+                      'DOOM',
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w900,
+                        color: AppColors.primary,
+                        letterSpacing: 2,
+                      ),
+                    ),
+                    if (_isKids) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(4),
+                          border: Border.all(
+                            color: AppColors.primary,
+                            width: 1,
+                          ),
+                        ),
+                        child: const Text(
+                          'KIDS',
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primary,
+                            letterSpacing: 1,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
             Row(
               children: [

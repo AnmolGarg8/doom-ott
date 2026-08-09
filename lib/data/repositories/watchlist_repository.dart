@@ -36,9 +36,27 @@ class RealWatchlistRepository implements WatchlistRepository {
     return cached;
   }
 
+  Future<bool> _isKidsMode() async {
+    try {
+      final profileBox = await Hive.openBox<dynamic>('user_profiles');
+      final activeProfileId = profileBox.get('active_id') as String?;
+      if (activeProfileId != null) {
+        final profile = profileBox.get(activeProfileId) as Map?;
+        if (profile != null) {
+          return profile['isKids'] as bool? ?? false;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
   Future<void> _syncWatchlistFromBackend() async {
     try {
-      final response = await dioClient.get('/watchlist');
+      final kidsMode = await _isKidsMode();
+      final response = await dioClient.get(
+        '/watchlist',
+        queryParameters: kidsMode ? {'kids_mode': true} : null,
+      );
       if (response.statusCode == 200 && response.data != null) {
         final list = response.data as List;
         final box = await _watchbox;

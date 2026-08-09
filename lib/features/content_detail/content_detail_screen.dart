@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../../core/widgets/empty_state.dart';
 import 'bloc/content_detail_bloc.dart';
 import 'bloc/content_detail_event.dart';
 import 'bloc/content_detail_state.dart';
@@ -184,10 +185,26 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
               ),
             );
           } else if (state is ContentDetailError) {
-            return Center(
-              child: Text(
-                'Error: ${state.message}',
-                style: const TextStyle(color: AppColors.error),
+            final isKidsForbidden = state.message.contains("Kids Mode") ||
+                state.message.contains("isn't available");
+            return Scaffold(
+              backgroundColor: Colors.black,
+              appBar: AppBar(
+                backgroundColor: Colors.transparent,
+                elevation: 0,
+                leading: IconButton(
+                  icon: const Icon(LucideIcons.arrowLeft, color: Colors.white),
+                  onPressed: () => context.pop(),
+                ),
+              ),
+              body: EmptyState(
+                icon: LucideIcons.shieldAlert,
+                title: 'Restricted Content',
+                description: isKidsForbidden
+                    ? "This title isn't available in Kids Mode"
+                    : 'Error: ${state.message}',
+                actionLabel: 'Go Back',
+                onActionPressed: () => context.pop(),
               ),
             );
           }

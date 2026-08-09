@@ -84,11 +84,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
         couponCode: _appliedCoupon,
       );
 
-      final orderId = checkoutData['order_id'] as String? ?? 'order_mock_123';
+      final transactionId =
+          checkoutData['transaction_id'] as String? ?? 'tx_mock_123';
 
       // 2. Verify payment (PAYMENT_PROVIDER=mock always succeeds)
       final success = await repo.verifyPayment(
-        orderId: orderId,
+        transactionId: transactionId,
         paymentId: 'pay_mock_${DateTime.now().millisecondsSinceEpoch}',
         signature: 'mock_signature',
       );
