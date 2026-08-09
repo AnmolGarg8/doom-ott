@@ -314,30 +314,41 @@ class RealAuthRepository implements AuthRepository {
         },
       );
       if (response.statusCode == 201 && response.data != null) {
-        final data = Map<String, dynamic>.from(response.data as Map);
-
+        final profilesList = response.data as List;
         final profileBox = await Hive.openBox<dynamic>('user_profiles');
-        final pId = data['id'] as String;
-        final pName = data['name'] as String;
-        final key = data['avatar_key'] as String;
-        final isKidsProfile = data['is_kids_profile'] as bool? ?? false;
 
-        int avatarIndex = 0;
-        final match = RegExp(r'\d+').firstMatch(key);
-        if (match != null) {
-          avatarIndex = int.parse(match.group(0)!);
+        Map<String, dynamic>? firstProfileData;
+
+        for (final p in profilesList) {
+          final profileMap = Map<String, dynamic>.from(p as Map);
+          final pId = profileMap['id'] as String;
+          final pName = profileMap['name'] as String;
+          final key = profileMap['avatar_key'] as String? ?? 'avatar_1';
+          final isKidsProfile =
+              profileMap['is_kids_profile'] as bool? ?? false;
+
+          int avatarIndex = 0;
+          final match = RegExp(r'\d+').firstMatch(key);
+          if (match != null) {
+            avatarIndex = int.parse(match.group(0)!);
+          }
+
+          final pData = {
+            'id': pId,
+            'name': pName,
+            'avatarIndex': avatarIndex,
+            'isKids': isKidsProfile,
+          };
+
+          await profileBox.put(pId, pData);
+
+          if (firstProfileData == null) {
+            firstProfileData = pData;
+            await profileBox.put('active_id', pId);
+          }
         }
 
-        await profileBox.put(pId, {
-          'id': pId,
-          'name': pName,
-          'avatarIndex': avatarIndex,
-          'isKids': isKidsProfile,
-        });
-
-        await profileBox.put('active_id', pId);
-
-        return data;
+        return firstProfileData ?? {};
       }
       throw Exception('Failed to create profile');
     } on DioException catch (e) {
