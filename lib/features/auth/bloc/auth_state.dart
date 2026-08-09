@@ -27,3 +27,14 @@ class AuthError extends AuthState {
   final String message;
   AuthError(this.message);
 }
+
+class DeviceLimitReachedState extends AuthState {
+  final List<dynamic> activeSessions;
+  final String message;
+  final Function() onRetry;
+  DeviceLimitReachedState({
+    required this.activeSessions,
+    required this.message,
+    required this.onRetry,
+  });
+}

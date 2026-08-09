@@ -8,6 +8,8 @@ import '../../features/auth/phone_entry_screen.dart';
 import '../../features/auth/otp_verification_screen.dart';
 import '../../features/auth/email_entry_screen.dart';
 import '../../features/auth/profile_setup_screen.dart';
+import '../../features/auth/device_limit_screen.dart';
+import '../../features/profile/manage_devices_screen.dart';
 import '../../features/home/home_screen.dart';
 import '../../features/browse/live_tv_screen.dart';
 import '../../features/browse/browse_screen.dart';
@@ -242,6 +244,21 @@ class AppRouter {
         path: '/payment-history',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) => const PaymentHistoryScreen(),
+      ),
+      GoRoute(
+        path: '/device-limit',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>? ?? {};
+          final sessions = extra['sessions'] as List<dynamic>? ?? [];
+          final onRetry = extra['onRetry'] as VoidCallback?;
+          return DeviceLimitScreen(sessions: sessions, onRetry: onRetry);
+        },
+      ),
+      GoRoute(
+        path: '/manage-devices',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const ManageDevicesScreen(),
       ),
       GoRoute(
         path: '/profile-picker',

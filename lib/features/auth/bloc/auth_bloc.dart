@@ -81,6 +81,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } on ProfileSetupRequiredException catch (e) {
       _tempUser = e.user;
       emit(ProfileSetupRequiredState(e.user));
+    } on DeviceLimitReachedException catch (e) {
+      emit(
+        DeviceLimitReachedState(
+          activeSessions: e.activeSessions,
+          message: e.message,
+          onRetry: () {
+            add(event);
+          },
+        ),
+      );
     } catch (e) {
       final msg = e.toString().replaceAll('Exception: ', '');
       emit(AuthError(msg));
@@ -112,6 +122,16 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     } on ProfileSetupRequiredException catch (e) {
       _tempUser = e.user;
       emit(ProfileSetupRequiredState(e.user));
+    } on DeviceLimitReachedException catch (e) {
+      emit(
+        DeviceLimitReachedState(
+          activeSessions: e.activeSessions,
+          message: e.message,
+          onRetry: () {
+            add(event);
+          },
+        ),
+      );
     } catch (e) {
       emit(AuthError(e.toString().replaceAll('Exception: ', '')));
     }

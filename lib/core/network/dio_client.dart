@@ -1,6 +1,8 @@
+import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:logger/logger.dart';
+import 'package:uuid/uuid.dart';
 import '../routing/app_router.dart';
 
 final Logger logger = Logger();
@@ -121,9 +123,27 @@ class _RefreshTokenInterceptor extends Interceptor {
               headers: {'Content-Type': 'application/json'},
             ),
           );
+
+          String? storedId = await _storage.read(key: 'device_id');
+          if (storedId == null || storedId.isEmpty) {
+            storedId = const Uuid().v4();
+            await _storage.write(key: 'device_id', value: storedId);
+          }
+          String? storedName = await _storage.read(key: 'device_name');
+          if (storedName == null || storedName.isEmpty) {
+            storedName = Platform.isAndroid
+                ? "Android Device"
+                : (Platform.isIOS ? "iOS Device" : "Generic Device");
+            await _storage.write(key: 'device_name', value: storedName);
+          }
+
           final response = await refreshDio.post(
             '/auth/refresh',
-            data: {'refresh_token': refreshToken},
+            data: {
+              'refresh_token': refreshToken,
+              'device_id': storedId,
+              'device_name': storedName,
+            },
           );
 
           if (response.statusCode == 200 && response.data != null) {

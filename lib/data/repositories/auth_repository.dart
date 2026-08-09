@@ -1,12 +1,24 @@
 import 'dart:convert';
+import 'dart:io';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:hive/hive.dart';
+import 'package:uuid/uuid.dart';
 import '../../core/network/dio_client.dart';
 import '../models/user_model.dart';
 
 class ProfileSetupRequiredException implements Exception {
   final UserModel user;
   ProfileSetupRequiredException(this.user);
+}
+
+class DeviceLimitReachedException implements Exception {
+  final List<dynamic> activeSessions;
+  final String message;
+  DeviceLimitReachedException({
+    required this.activeSessions,
+    required this.message,
+  });
 }
 
 abstract class AuthRepository {
@@ -31,6 +43,8 @@ abstract class AuthRepository {
     bool isKids,
   );
   Future<void> deleteProfile(String profileId);
+  Future<List<dynamic>> getActiveSessions();
+  Future<void> deleteSession(String sessionId);
 
   // Backward compatibility
   Future<UserModel> login(String email, String password);
@@ -39,8 +53,51 @@ abstract class AuthRepository {
 
 class RealAuthRepository implements AuthRepository {
   final DioClient dioClient;
+  String? _deviceId;
+  String? _deviceName;
 
   RealAuthRepository({required this.dioClient});
+
+  Future<Map<String, String>> _getDeviceHeadersOrBody() async {
+    if (_deviceId == null || _deviceName == null) {
+      final storage = dioClient.storage;
+      String? storedId = await storage.read(key: 'device_id');
+      if (storedId == null || storedId.isEmpty) {
+        storedId = const Uuid().v4();
+        await storage.write(key: 'device_id', value: storedId);
+      }
+      _deviceId = storedId;
+
+      String? storedName = await storage.read(key: 'device_name');
+      if (storedName == null || storedName.isEmpty) {
+        try {
+          final deviceInfo = DeviceInfoPlugin();
+          if (Platform.isAndroid) {
+            final androidInfo = await deviceInfo.androidInfo;
+            final brand = androidInfo.brand;
+            final model = androidInfo.model;
+            storedName = "${brand[0].toUpperCase()}${brand.substring(1)} $model";
+          } else if (Platform.isIOS) {
+            final iosInfo = await deviceInfo.iosInfo;
+            storedName = iosInfo.name;
+          } else {
+            storedName = "Generic Device";
+          }
+        } catch (_) {
+          storedName = Platform.isAndroid
+              ? "Android Device"
+              : (Platform.isIOS ? "iOS Device" : "Generic Device");
+        }
+        await storage.write(key: 'device_name', value: storedName);
+      }
+      _deviceName = storedName;
+    }
+
+    return {
+      'device_id': _deviceId!,
+      'device_name': _deviceName!,
+    };
+  }
 
   @override
   Future<UserModel?> getCurrentUser() async {
@@ -166,12 +223,25 @@ class RealAuthRepository implements AuthRepository {
   @override
   Future<UserModel> verifyOtp(String phone, String otp) async {
     try {
+      final deviceData = await _getDeviceHeadersOrBody();
       final response = await dioClient.post(
         '/auth/otp/verify',
-        data: {'phone': phone, 'otp': otp},
+        data: {
+          'phone': phone,
+          'otp': otp,
+          ...deviceData,
+        },
       );
       return await _handleTokenResponse(response);
     } on DioException catch (e) {
+      if (e.response?.statusCode == 409 && e.response?.data != null) {
+        final data = e.response!.data as Map<String, dynamic>;
+        final sessions = data['active_sessions'] as List? ?? [];
+        throw DeviceLimitReachedException(
+          activeSessions: sessions,
+          message: data['detail'] as String? ?? 'Device limit reached',
+        );
+      }
       final detail = e.response?.data is Map
           ? e.response?.data['detail']
           : e.message;
@@ -182,12 +252,25 @@ class RealAuthRepository implements AuthRepository {
   @override
   Future<UserModel> loginWithEmail(String email, String password) async {
     try {
+      final deviceData = await _getDeviceHeadersOrBody();
       final response = await dioClient.post(
         '/auth/email/login',
-        data: {'email': email, 'password': password},
+        data: {
+          'email': email,
+          'password': password,
+          ...deviceData,
+        },
       );
       return await _handleTokenResponse(response);
     } on DioException catch (e) {
+      if (e.response?.statusCode == 409 && e.response?.data != null) {
+        final data = e.response!.data as Map<String, dynamic>;
+        final sessions = data['active_sessions'] as List? ?? [];
+        throw DeviceLimitReachedException(
+          activeSessions: sessions,
+          message: data['detail'] as String? ?? 'Device limit reached',
+        );
+      }
       final detail = e.response?.data is Map
           ? e.response?.data['detail']
           : e.message;
@@ -202,12 +285,26 @@ class RealAuthRepository implements AuthRepository {
     String password,
   ) async {
     try {
+      final deviceData = await _getDeviceHeadersOrBody();
       final response = await dioClient.post(
         '/auth/email/signup',
-        data: {'name': name, 'email': email, 'password': password},
+        data: {
+          'name': name,
+          'email': email,
+          'password': password,
+          ...deviceData,
+        },
       );
       return await _handleTokenResponse(response);
     } on DioException catch (e) {
+      if (e.response?.statusCode == 409 && e.response?.data != null) {
+        final data = e.response!.data as Map<String, dynamic>;
+        final sessions = data['active_sessions'] as List? ?? [];
+        throw DeviceLimitReachedException(
+          activeSessions: sessions,
+          message: data['detail'] as String? ?? 'Device limit reached',
+        );
+      }
       final detail = e.response?.data is Map
           ? e.response?.data['detail']
           : e.message;
@@ -432,6 +529,33 @@ class RealAuthRepository implements AuthRepository {
       throw Exception(detail ?? 'Failed to delete profile');
     }
   }
+
+  @override
+  Future<List<dynamic>> getActiveSessions() async {
+    try {
+      final response = await dioClient.get('/users/sessions');
+      if (response.statusCode == 200 && response.data != null) {
+        return response.data as List;
+      }
+      return [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  @override
+  Future<void> deleteSession(String sessionId) async {
+    try {
+      final response = await dioClient.dio.delete('/users/sessions/$sessionId');
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception('Failed to delete session');
+      }
+    } on DioException catch (e) {
+      final detail =
+          e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      throw Exception(detail ?? 'Failed to delete session');
+    }
+  }
 }
 
 class MockAuthRepository implements AuthRepository {
@@ -582,4 +706,10 @@ class MockAuthRepository implements AuthRepository {
 
   @override
   Future<void> deleteProfile(String profileId) async {}
+
+  @override
+  Future<List<dynamic>> getActiveSessions() async => [];
+
+  @override
+  Future<void> deleteSession(String sessionId) async {}
 }

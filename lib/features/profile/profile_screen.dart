@@ -167,6 +167,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
                 const Divider(),
                 _buildListTile(
+                  icon: LucideIcons.monitor,
+                  title: 'Manage Devices',
+                  subtitle: 'Manage active device sessions',
+                  onTap: () => context.push('/manage-devices'),
+                ),
+                const Divider(),
+                _buildListTile(
                   icon: LucideIcons.shieldCheck,
                   title: 'Parental Controls',
                   subtitle: 'Manage content restrictions per profile',

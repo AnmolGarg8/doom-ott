@@ -101,6 +101,14 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
             context.go('/home');
           } else if (state is ProfileSetupRequiredState) {
             context.go('/auth/profile-setup');
+          } else if (state is DeviceLimitReachedState) {
+            context.push(
+              '/device-limit',
+              extra: {
+                'sessions': state.activeSessions,
+                'onRetry': state.onRetry,
+              },
+            );
           } else if (state is AuthError) {
             setState(() {
               _errorMessage = state.message;

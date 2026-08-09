@@ -59,6 +59,14 @@ class _EmailEntryScreenState extends State<EmailEntryScreen> {
             context.go('/auth/profile-setup');
           } else if (state is Authenticated) {
             context.go('/home');
+          } else if (state is DeviceLimitReachedState) {
+            context.push(
+              '/device-limit',
+              extra: {
+                'sessions': state.activeSessions,
+                'onRetry': state.onRetry,
+              },
+            );
           } else if (state is AuthError) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
