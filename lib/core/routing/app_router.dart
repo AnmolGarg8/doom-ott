@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../features/splash/splash_screen.dart';
 import '../../features/onboarding/onboarding_screen.dart';
 import '../../features/auth/auth_landing_screen.dart';
@@ -267,7 +268,11 @@ class AppRouter {
         path: '/parental-controls',
         parentNavigatorKey: _rootNavigatorKey,
         builder: (context, state) {
-          final id = state.uri.queryParameters['id'] ?? 'p_1';
+          final id = state.uri.queryParameters['id'] ??
+              (Hive.isBoxOpen('user_profiles')
+                  ? Hive.box('user_profiles').get('active_id') as String?
+                  : null) ??
+              '';
           return ParentalControlsScreen(profileId: id);
         },
       ),

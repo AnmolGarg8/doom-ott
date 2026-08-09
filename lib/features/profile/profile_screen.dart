@@ -18,7 +18,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late Box<dynamic> _profileBox;
   List<Map<String, dynamic>> _profiles = [];
-  String _activeProfileId = 'p_1';
+  String _activeProfileId = '';
   bool _isBoxReady = false;
 
   final List<Color> _avatarColors = const [
@@ -43,7 +43,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   void _loadProfiles() {
     final activeId =
-        _profileBox.get('active_id', defaultValue: 'p_1') as String;
+        _profileBox.get('active_id') as String? ?? '';
     final keys = _profileBox.keys.where((k) => k != 'active_id').toList();
 
     final List<Map<String, dynamic>> list = [];

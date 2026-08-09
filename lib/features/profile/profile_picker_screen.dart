@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/colors.dart';
+import '../../data/repositories/auth_repository.dart';
 
 class ProfilePickerScreen extends StatefulWidget {
   final bool manageMode;
@@ -34,38 +36,20 @@ class _ProfilePickerScreenState extends State<ProfilePickerScreen> {
   }
 
   Future<void> _initHive() async {
+    final authRepository = context.read<AuthRepository>();
     _profileBox = await Hive.openBox<dynamic>('user_profiles');
 
-    // Populate initial default profile if box is empty
-    if (_profileBox.isEmpty) {
-      await _profileBox.put('p_1', {
-        'id': 'p_1',
-        'name': 'Primary User',
-        'avatarIndex': 0,
-        'isKids': false,
-      });
-      await _profileBox.put('p_2', {
-        'id': 'p_2',
-        'name': 'Doom Kid',
-        'avatarIndex': 3,
-        'isKids': true,
-      });
-      await _profileBox.put('active_id', 'p_1');
-    } else if (!_profileBox.containsKey('p_2')) {
-      await _profileBox.put('p_2', {
-        'id': 'p_2',
-        'name': 'Doom Kid',
-        'avatarIndex': 3,
-        'isKids': true,
-      });
-    }
+    try {
+      await authRepository.getCurrentUser();
+    } catch (_) {}
 
+    if (!mounted) return;
     _loadProfiles();
   }
 
   void _loadProfiles() {
     final activeId =
-        _profileBox.get('active_id', defaultValue: 'p_1') as String;
+        _profileBox.get('active_id') as String? ?? '';
     final keys = _profileBox.keys.where((k) => k != 'active_id').toList();
 
     final List<Map<String, dynamic>> list = [];

@@ -77,6 +77,26 @@ void main() {
       await Hive.initFlutter();
       Hive.registerAdapter(ContentModelAdapter());
 
+      // One-time cache migration / version check
+      const int currentCacheVersion = 2;
+      final appBox = await Hive.openBox<dynamic>('app_settings');
+      final int storedCacheVersion =
+          appBox.get('cache_version', defaultValue: 0) as int;
+      if (storedCacheVersion < currentCacheVersion) {
+        try {
+          final cwBox = await Hive.openBox<ContentModel>('continue_watching');
+          await cwBox.clear();
+
+          final wlBox = await Hive.openBox<ContentModel>('watchlist');
+          await wlBox.clear();
+
+          final upBox = await Hive.openBox<dynamic>('user_profiles');
+          await upBox.clear();
+        } catch (_) {}
+
+        await appBox.put('cache_version', currentCacheVersion);
+      }
+
       final dioClient = DioClient(baseUrl: 'http://10.0.2.2:8000');
       final authRepository = RealAuthRepository(dioClient: dioClient);
       final contentRepository = RealContentRepository(dioClient: dioClient);

@@ -1,7 +1,13 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
+import 'package:hive/hive.dart';
 import '../../core/network/dio_client.dart';
 import '../models/user_model.dart';
+
+class ProfileSetupRequiredException implements Exception {
+  final UserModel user;
+  ProfileSetupRequiredException(this.user);
+}
 
 abstract class AuthRepository {
   Future<UserModel?> getCurrentUser();
@@ -13,6 +19,18 @@ abstract class AuthRepository {
   Future<UserModel> loginWithApple(String token);
   Future<void> logout();
   Future<UserModel> upgradeSubscription(String tier);
+  Future<Map<String, dynamic>> createProfile(
+    String name,
+    String avatarKey,
+    bool isKids,
+  );
+  Future<Map<String, dynamic>> updateProfile(
+    String profileId,
+    String name,
+    String avatarKey,
+    bool isKids,
+  );
+  Future<void> deleteProfile(String profileId);
 
   // Backward compatibility
   Future<UserModel> login(String email, String password);
@@ -63,6 +81,59 @@ class RealAuthRepository implements AuthRepository {
           key: 'user_data',
           value: jsonEncode(user.toJson()),
         );
+
+        // Fetch and sync profiles from GET /users/me
+        try {
+          final meResponse = await dioClient.get('/users/me');
+          if (meResponse.statusCode == 200 && meResponse.data != null) {
+            final meData = Map<String, dynamic>.from(meResponse.data as Map);
+            final profilesList = meData['profiles'] as List? ?? [];
+            final profileBox = await Hive.openBox<dynamic>('user_profiles');
+
+            final String? currentActiveId =
+                profileBox.get('active_id') as String?;
+
+            await profileBox.clear();
+
+            String? newActiveId;
+            for (final p in profilesList) {
+              final profileMap = Map<String, dynamic>.from(p as Map);
+              final pId = profileMap['id'] as String;
+              final pName = profileMap['name'] as String;
+              final avatarKey =
+                  profileMap['avatar_key'] as String? ?? 'avatar_1';
+              final isKids = profileMap['is_kids_profile'] as bool? ?? false;
+
+              int avatarIndex = 0;
+              final match = RegExp(r'\d+').firstMatch(avatarKey);
+              if (match != null) {
+                avatarIndex = int.parse(match.group(0)!);
+              }
+
+              await profileBox.put(pId, {
+                'id': pId,
+                'name': pName,
+                'avatarIndex': avatarIndex,
+                'isKids': isKids,
+              });
+
+              if (pId == currentActiveId) {
+                newActiveId = pId;
+              }
+            }
+
+            if (newActiveId == null && profilesList.isNotEmpty) {
+              newActiveId = Map<String, dynamic>.from(
+                profilesList.first as Map,
+              )['id'] as String;
+            }
+
+            if (newActiveId != null) {
+              await profileBox.put('active_id', newActiveId);
+            }
+          }
+        } catch (_) {}
+
         return user;
       }
       return null;
@@ -215,11 +286,140 @@ class RealAuthRepository implements AuthRepository {
 
       final user = await getCurrentUser();
       if (user != null) {
+        final profileBox = await Hive.openBox<dynamic>('user_profiles');
+        final keys = profileBox.keys.where((k) => k != 'active_id').toList();
+        if (keys.isEmpty) {
+          throw ProfileSetupRequiredException(user);
+        }
         return user;
       }
       throw Exception('Failed to retrieve user profile after authentication');
     }
     throw Exception('Authentication failed');
+  }
+
+  @override
+  Future<Map<String, dynamic>> createProfile(
+    String name,
+    String avatarKey,
+    bool isKids,
+  ) async {
+    try {
+      final response = await dioClient.post(
+        '/users/profiles',
+        data: {
+          'name': name,
+          'avatar_key': avatarKey,
+          'is_kids_profile': isKids,
+        },
+      );
+      if (response.statusCode == 201 && response.data != null) {
+        final data = Map<String, dynamic>.from(response.data as Map);
+
+        final profileBox = await Hive.openBox<dynamic>('user_profiles');
+        final pId = data['id'] as String;
+        final pName = data['name'] as String;
+        final key = data['avatar_key'] as String;
+        final isKidsProfile = data['is_kids_profile'] as bool? ?? false;
+
+        int avatarIndex = 0;
+        final match = RegExp(r'\d+').firstMatch(key);
+        if (match != null) {
+          avatarIndex = int.parse(match.group(0)!);
+        }
+
+        await profileBox.put(pId, {
+          'id': pId,
+          'name': pName,
+          'avatarIndex': avatarIndex,
+          'isKids': isKidsProfile,
+        });
+
+        await profileBox.put('active_id', pId);
+
+        return data;
+      }
+      throw Exception('Failed to create profile');
+    } on DioException catch (e) {
+      final detail =
+          e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      throw Exception(detail ?? 'Failed to create profile');
+    }
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateProfile(
+    String profileId,
+    String name,
+    String avatarKey,
+    bool isKids,
+  ) async {
+    try {
+      final response = await dioClient.dio.patch(
+        '/users/profiles/$profileId',
+        data: {
+          'name': name,
+          'avatar_key': avatarKey,
+          'is_kids_profile': isKids,
+        },
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        final data = Map<String, dynamic>.from(response.data as Map);
+
+        final profileBox = await Hive.openBox<dynamic>('user_profiles');
+        final pId = data['id'] as String;
+        final pName = data['name'] as String;
+        final key = data['avatar_key'] as String;
+        final isKidsProfile = data['is_kids_profile'] as bool? ?? false;
+
+        int avatarIndex = 0;
+        final match = RegExp(r'\d+').firstMatch(key);
+        if (match != null) {
+          avatarIndex = int.parse(match.group(0)!);
+        }
+
+        await profileBox.put(pId, {
+          'id': pId,
+          'name': pName,
+          'avatarIndex': avatarIndex,
+          'isKids': isKidsProfile,
+        });
+
+        return data;
+      }
+      throw Exception('Failed to update profile');
+    } on DioException catch (e) {
+      final detail =
+          e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      throw Exception(detail ?? 'Failed to update profile');
+    }
+  }
+
+  @override
+  Future<void> deleteProfile(String profileId) async {
+    try {
+      final response = await dioClient.dio.delete('/users/profiles/$profileId');
+      if (response.statusCode == 204 || response.statusCode == 200) {
+        final profileBox = await Hive.openBox<dynamic>('user_profiles');
+        await profileBox.delete(profileId);
+
+        final activeId = profileBox.get('active_id') as String?;
+        if (activeId == profileId) {
+          final keys = profileBox.keys.where((k) => k != 'active_id').toList();
+          if (keys.isNotEmpty) {
+            await profileBox.put('active_id', keys.first as String);
+          } else {
+            await profileBox.delete('active_id');
+          }
+        }
+        return;
+      }
+      throw Exception('Failed to delete profile');
+    } on DioException catch (e) {
+      final detail =
+          e.response?.data is Map ? e.response?.data['detail'] : e.message;
+      throw Exception(detail ?? 'Failed to delete profile');
+    }
   }
 }
 
@@ -339,4 +539,36 @@ class MockAuthRepository implements AuthRepository {
     );
     return _currentUser!;
   }
+
+  @override
+  Future<Map<String, dynamic>> createProfile(
+    String name,
+    String avatarKey,
+    bool isKids,
+  ) async {
+    return {
+      'id': 'p_mock',
+      'name': name,
+      'avatar_key': avatarKey,
+      'is_kids_profile': isKids,
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> updateProfile(
+    String profileId,
+    String name,
+    String avatarKey,
+    bool isKids,
+  ) async {
+    return {
+      'id': profileId,
+      'name': name,
+      'avatar_key': avatarKey,
+      'is_kids_profile': isKids,
+    };
+  }
+
+  @override
+  Future<void> deleteProfile(String profileId) async {}
 }

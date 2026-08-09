@@ -264,7 +264,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: LucideIcons.user,
             title: 'Edit Current Profile',
             subtitle: 'Change name or avatar theme color',
-            onTap: () => context.push('/edit-profile?id=p_1'),
+            onTap: () async {
+              final box = await Hive.openBox<dynamic>('user_profiles');
+              final activeId = box.get('active_id') as String?;
+              if (context.mounted && activeId != null) {
+                context.push('/edit-profile?id=$activeId');
+              }
+            },
           ),
           const Divider(color: Colors.white10),
           _buildSettingsRow(

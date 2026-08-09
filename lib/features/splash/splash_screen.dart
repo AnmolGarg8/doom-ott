@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../../core/theme/colors.dart';
 import '../../data/repositories/auth_repository.dart';
 
@@ -46,7 +47,15 @@ class _SplashScreenState extends State<SplashScreen>
         final user = await authRepository.getCurrentUser();
         if (!mounted) return;
         if (user != null) {
-          context.go('/home');
+          final profileBox = await Hive.openBox<dynamic>('user_profiles');
+          if (!mounted) return;
+          final keys = profileBox.keys.where((k) => k != 'active_id').toList();
+          final activeId = profileBox.get('active_id') as String?;
+          if (keys.isEmpty || activeId == null) {
+            context.go('/auth/profile-setup');
+          } else {
+            context.go('/home');
+          }
         } else {
           context.go('/onboarding');
         }

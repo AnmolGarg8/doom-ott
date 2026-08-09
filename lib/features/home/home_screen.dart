@@ -185,9 +185,35 @@ class _HomeScreenState extends State<HomeScreen> {
             );
           } else if (state is ContentError) {
             return Center(
-              child: Text(
-                'Failed to load content: ${state.message}',
-                style: const TextStyle(color: AppColors.error),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(
+                    LucideIcons.alertTriangle,
+                    color: AppColors.error,
+                    size: 48,
+                  ),
+                  const SizedBox(height: 16),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                    child: Text(
+                      'Failed to load content:\n${state.message}',
+                      style: const TextStyle(color: Colors.white, fontSize: 14),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                  ElevatedButton(
+                    onPressed: () {
+                      context.read<ContentBloc>().add(LoadHomeContent());
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.black,
+                    ),
+                    child: const Text('Retry'),
+                  ),
+                ],
               ),
             );
           }

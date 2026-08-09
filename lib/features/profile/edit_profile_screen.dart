@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:lucide_icons/lucide_icons.dart';
 import '../../core/theme/colors.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../data/repositories/auth_repository.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String? profileId;
@@ -68,50 +70,79 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       return;
     }
 
-    final id = widget.profileId ?? 'p_${DateTime.now().millisecondsSinceEpoch}';
-    final profileData = {
-      'id': id,
-      'name': name,
-      'avatarIndex': _selectedAvatarIndex,
-      'isKids': _isKids,
-    };
+    try {
+      final authRepository = context.read<AuthRepository>();
+      final avatarKey = 'avatar_$_selectedAvatarIndex';
+      if (widget.profileId != null) {
+        await authRepository.updateProfile(
+          widget.profileId!,
+          name,
+          avatarKey,
+          _isKids,
+        );
+      } else {
+        await authRepository.createProfile(name, avatarKey, _isKids);
+      }
 
-    await _profileBox.put(id, profileData);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            widget.profileId != null
-                ? 'Profile updated successfully!'
-                : 'Profile created successfully!',
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.profileId != null
+                  ? 'Profile updated successfully!'
+                  : 'Profile created successfully!',
+            ),
+            backgroundColor: AppColors.primary,
           ),
-          backgroundColor: AppColors.primary,
-        ),
-      );
-      context.pop();
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _deleteProfile() async {
-    if (widget.profileId == 'p_1') {
+    final keys = _profileBox.keys.where((k) => k != 'active_id').toList();
+    if (keys.length <= 1) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Primary Profile cannot be deleted.'),
+          content: Text('At least one profile must be kept.'),
           backgroundColor: AppColors.error,
         ),
       );
       return;
     }
 
-    await _profileBox.delete(widget.profileId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Profile deleted successfully!'),
-          backgroundColor: AppColors.primary,
-        ),
-      );
-      context.pop();
+    try {
+      final authRepository = context.read<AuthRepository>();
+      await authRepository.deleteProfile(widget.profileId!);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Profile deleted successfully!'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+        context.pop();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString().replaceAll('Exception: ', '')),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     }
   }
 
@@ -313,8 +344,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               onPressed: _saveProfile,
             ),
 
-            // Delete option (only if editing subprofile)
-            if (!isNew && widget.profileId != 'p_1') ...[
+            // Delete option (only if editing profile and not the last profile remaining)
+            if (!isNew && _profileBox.keys.where((k) => k != 'active_id').length > 1) ...[
               const SizedBox(height: 16),
               OutlinedButton.icon(
                 style: OutlinedButton.styleFrom(

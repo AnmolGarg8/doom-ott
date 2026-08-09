@@ -66,8 +66,10 @@ class RealContentRepository implements ContentRepository {
   Future<List<ContentModel>> getContinueWatchingContent() async {
     try {
       final profileBox = await Hive.openBox<dynamic>('user_profiles');
-      final activeProfileId =
-          profileBox.get('active_id', defaultValue: 'p_1') as String;
+      final activeProfileId = profileBox.get('active_id') as String?;
+      if (activeProfileId == null || activeProfileId.isEmpty) {
+        throw Exception('No active profile found.');
+      }
 
       final response = await dioClient.get(
         '/watch-progress',

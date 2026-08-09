@@ -69,6 +69,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       final user = await authRepository.verifyOtp(phone, event.code);
       _tempUser = user;
       emit(Authenticated(user));
+    } on ProfileSetupRequiredException catch (e) {
+      _tempUser = e.user;
+      emit(ProfileSetupRequiredState(e.user));
     } catch (e) {
       final msg = e.toString().replaceAll('Exception: ', '');
       emit(AuthError(msg));
@@ -97,6 +100,9 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
       }
       _tempUser = user;
       emit(Authenticated(user));
+    } on ProfileSetupRequiredException catch (e) {
+      _tempUser = e.user;
+      emit(ProfileSetupRequiredState(e.user));
     } catch (e) {
       emit(AuthError(e.toString().replaceAll('Exception: ', '')));
     }
@@ -107,14 +113,26 @@ class AuthBloc extends Bloc<AuthEvent, AuthState> {
     Emitter<AuthState> emit,
   ) async {
     emit(AuthLoading());
-    if (_tempUser != null) {
-      final updatedUser = _tempUser!.copyWith(
-        name: event.name,
-        profilePicture: event.avatarIndex.toString(),
-      );
-      emit(Authenticated(updatedUser));
-    } else {
-      emit(Unauthenticated());
+    try {
+      final avatarKey = 'avatar_${event.avatarIndex}';
+      await authRepository.createProfile(event.name, avatarKey, false);
+
+      if (_tempUser != null) {
+        final updatedUser = _tempUser!.copyWith(
+          name: event.name,
+          profilePicture: event.avatarIndex.toString(),
+        );
+        emit(Authenticated(updatedUser));
+      } else {
+        final user = await authRepository.getCurrentUser();
+        if (user != null) {
+          emit(Authenticated(user));
+        } else {
+          emit(Unauthenticated());
+        }
+      }
+    } catch (e) {
+      emit(AuthError(e.toString().replaceAll('Exception: ', '')));
     }
   }
 
