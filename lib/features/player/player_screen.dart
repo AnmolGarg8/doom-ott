@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
 import 'package:lucide_icons/lucide_icons.dart';
+import 'package:hive_flutter/hive_flutter.dart';
 import '../content_detail/bloc/content_detail_bloc.dart';
 import '../content_detail/bloc/content_detail_state.dart';
 import '../content_detail/bloc/content_detail_event.dart';
@@ -40,6 +41,13 @@ class _PlayerScreenState extends State<PlayerScreen> {
   Duration _duration = Duration.zero;
   bool _isPlaying = false;
   bool _isBuffering = false;
+
+  // Auto-play Next Episode States
+  int _currentEpisodeIndex = 0;
+  bool _isAutoPlayCancelled = false;
+  Timer? _autoPlayCountdownTimer;
+  int _autoPlaySecondsLeft = 8;
+  bool _showAutoPlayOverlay = false;
 
   // Stream Subscriptions
   StreamSubscription? _posSub;
@@ -98,7 +106,10 @@ class _PlayerScreenState extends State<PlayerScreen> {
 
       // Listen to Player Streams
       _posSub = _player.stream.position.listen((p) {
-        if (mounted) setState(() => _position = p);
+        if (mounted) {
+          setState(() => _position = p);
+          _checkAutoPlayProgress(p);
+        }
       });
       _durSub = _player.stream.duration.listen((d) {
         if (mounted) setState(() => _duration = d);
@@ -168,6 +179,119 @@ class _PlayerScreenState extends State<PlayerScreen> {
         }
       }
     });
+  }
+
+  Future<bool> _isKidsMode() async {
+    try {
+      final profileBox = await Hive.openBox<dynamic>('user_profiles');
+      final activeProfileId = profileBox.get('active_id') as String?;
+      if (activeProfileId != null) {
+        final profile = profileBox.get(activeProfileId) as Map?;
+        if (profile != null) {
+          return profile['isKids'] as bool? ?? false;
+        }
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  void _checkAutoPlayProgress(Duration p) {
+    if (_content?.type != 'series' ||
+        _isAutoPlayCancelled ||
+        _showAutoPlayOverlay ||
+        _duration == Duration.zero) {
+      return;
+    }
+
+    final episodes = _getMockEpisodes(_content!.id);
+    if (_currentEpisodeIndex + 1 >= episodes.length) {
+      return; // No next episode
+    }
+
+    final timeRemaining = _duration - p;
+    if (timeRemaining <= const Duration(seconds: 15) &&
+        timeRemaining > Duration.zero) {
+      _startAutoPlayCountdown();
+    }
+  }
+
+  void _startAutoPlayCountdown() {
+    setState(() {
+      _showAutoPlayOverlay = true;
+      _autoPlaySecondsLeft = 8;
+    });
+
+    _autoPlayCountdownTimer?.cancel();
+    _autoPlayCountdownTimer = Timer.periodic(const Duration(seconds: 1), (
+      timer,
+    ) async {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+
+      if (_autoPlaySecondsLeft > 1) {
+        setState(() {
+          _autoPlaySecondsLeft--;
+        });
+      } else {
+        timer.cancel();
+        setState(() {
+          _showAutoPlayOverlay = false;
+        });
+        await _playNextEpisode();
+      }
+    });
+  }
+
+  Future<void> _playNextEpisode() async {
+    if (_content == null) return;
+    final episodes = _getMockEpisodes(_content!.id);
+    final nextIndex = _currentEpisodeIndex + 1;
+    if (nextIndex >= episodes.length) return;
+
+    setState(() {
+      _isLoading = true;
+      _showAutoPlayOverlay = false;
+    });
+
+    try {
+      final contentRepo = RepositoryProvider.of<ContentRepository>(context);
+
+      // Kids Mode defense check
+      final isKids = await _isKidsMode();
+      if (isKids) {
+        final details = await contentRepo.getContentById(_content!.id);
+        if (details == null) {
+          throw Exception("This title isn't available in Kids Mode");
+        }
+      }
+
+      final epUrl = await contentRepo.getPlaybackUrl(_content!.id);
+      _player.open(Media(epUrl));
+
+      setState(() {
+        _currentEpisodeIndex = nextIndex;
+        _isAutoPlayCancelled = false;
+        _isLoading = false;
+      });
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Switched to ${episodes[nextIndex]['title']}'),
+            backgroundColor: AppColors.primary,
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _playbackError = e.toString().replaceAll('Exception: ', '');
+        });
+      }
+    }
   }
 
   void _skipForward() {
@@ -275,6 +399,12 @@ class _PlayerScreenState extends State<PlayerScreen> {
                             widget.contentId,
                           );
                           _player.open(Media(epUrl));
+                          setState(() {
+                            _currentEpisodeIndex = index;
+                            _isAutoPlayCancelled = false;
+                            _showAutoPlayOverlay = false;
+                          });
+                          _autoPlayCountdownTimer?.cancel();
                           messenger.showSnackBar(
                             SnackBar(
                               content: Text('Switched to ${ep['title']}'),
@@ -314,6 +444,7 @@ class _PlayerScreenState extends State<PlayerScreen> {
     _bufStateSub?.cancel();
     _hideTimer?.cancel();
     _progressTimer?.cancel();
+    _autoPlayCountdownTimer?.cancel();
 
     _player.dispose();
     super.dispose();
@@ -601,6 +732,133 @@ class _PlayerScreenState extends State<PlayerScreen> {
                         ),
                       ),
                     ],
+
+                    if (_showAutoPlayOverlay && _content != null)
+                      Positioned(
+                        bottom: isShort ? 120 : 100,
+                        right: 24,
+                        child: Container(
+                          width: 320,
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.85),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.5),
+                              width: 1.5,
+                            ),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  ClipRRect(
+                                    borderRadius: BorderRadius.circular(6),
+                                    child: Image.network(
+                                      _getMockEpisodes(
+                                        _content!.id,
+                                      )[_currentEpisodeIndex + 1]['thumbnail']
+                                          as String,
+                                      width: 90,
+                                      height: 55,
+                                      fit: BoxFit.cover,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          'NEXT EPISODE',
+                                          style: TextStyle(
+                                            color: AppColors.primary,
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            letterSpacing: 1,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          _getMockEpisodes(
+                                            _content!.id,
+                                          )[_currentEpisodeIndex + 1]['title']
+                                              as String,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Playing in ${_autoPlaySecondsLeft}s',
+                                          style: const TextStyle(
+                                            color: Colors.white70,
+                                            fontSize: 11,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: [
+                                  TextButton(
+                                    onPressed: () {
+                                      setState(() {
+                                        _showAutoPlayOverlay = false;
+                                        _isAutoPlayCancelled = true;
+                                      });
+                                      _autoPlayCountdownTimer?.cancel();
+                                    },
+                                    child: const Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  ElevatedButton(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: AppColors.primary,
+                                      foregroundColor: Colors.black,
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 16,
+                                        vertical: 8,
+                                      ),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                    ),
+                                    onPressed: () async {
+                                      _autoPlayCountdownTimer?.cancel();
+                                      await _playNextEpisode();
+                                    },
+                                    child: const Text(
+                                      'Play Now',
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
                   ],
                 ),
               ),
