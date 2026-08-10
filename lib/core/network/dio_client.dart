@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -95,7 +96,7 @@ class _AuthInterceptor extends Interceptor {
 class _RefreshTokenInterceptor extends Interceptor {
   final Dio _dio;
   final FlutterSecureStorage _storage;
-  bool _isRefreshing = false;
+  Completer<String>? _refreshCompleter;
 
   _RefreshTokenInterceptor(this._dio, this._storage);
 
@@ -114,65 +115,84 @@ class _RefreshTokenInterceptor extends Interceptor {
       }
 
       final refreshToken = await _storage.read(key: 'refresh_token');
-      if (refreshToken != null && refreshToken.isNotEmpty && !_isRefreshing) {
-        _isRefreshing = true;
+      if (refreshToken == null || refreshToken.isEmpty) {
+        await _storage.deleteAll();
+        AppRouter.router.go('/auth');
+        return super.onError(err, handler);
+      }
+
+      if (_refreshCompleter != null) {
         try {
-          final refreshDio = Dio(
-            BaseOptions(
-              baseUrl: _dio.options.baseUrl,
-              headers: {'Content-Type': 'application/json'},
-            ),
-          );
-
-          String? storedId = await _storage.read(key: 'device_id');
-          if (storedId == null || storedId.isEmpty) {
-            storedId = const Uuid().v4();
-            await _storage.write(key: 'device_id', value: storedId);
-          }
-          String? storedName = await _storage.read(key: 'device_name');
-          if (storedName == null || storedName.isEmpty) {
-            storedName = Platform.isAndroid
-                ? "Android Device"
-                : (Platform.isIOS ? "iOS Device" : "Generic Device");
-            await _storage.write(key: 'device_name', value: storedName);
-          }
-
-          final response = await refreshDio.post(
-            '/auth/refresh',
-            data: {
-              'refresh_token': refreshToken,
-              'device_id': storedId,
-              'device_name': storedName,
-            },
-          );
-
-          if (response.statusCode == 200 && response.data != null) {
-            final data = response.data as Map<String, dynamic>;
-            final newAccessToken = data['access_token'] as String;
-            final newRefreshToken = data['refresh_token'] as String;
-
-            await _storage.write(key: 'access_token', value: newAccessToken);
-            await _storage.write(key: 'refresh_token', value: newRefreshToken);
-
-            _isRefreshing = false;
-
-            // Retry original request with new access token
-            final opts = err.requestOptions;
-            opts.headers['Authorization'] = 'Bearer $newAccessToken';
-
-            final cloneReq = await _dio.fetch(opts);
-            return handler.resolve(cloneReq);
-          }
-        } catch (e) {
-          logger.e('Token refresh failed: $e');
-        } finally {
-          _isRefreshing = false;
+          final newAccessToken = await _refreshCompleter!.future;
+          final opts = err.requestOptions;
+          opts.headers['Authorization'] = 'Bearer $newAccessToken';
+          final cloneReq = await _dio.fetch(opts);
+          return handler.resolve(cloneReq);
+        } catch (_) {
+          return super.onError(err, handler);
         }
       }
 
-      // If refresh failed or no refresh token, clear stored tokens & route to Auth
-      await _storage.deleteAll();
-      AppRouter.router.go('/auth');
+      _refreshCompleter = Completer<String>();
+      try {
+        final refreshDio = Dio(
+          BaseOptions(
+            baseUrl: _dio.options.baseUrl,
+            headers: {'Content-Type': 'application/json'},
+          ),
+        );
+
+        String? storedId = await _storage.read(key: 'device_id');
+        if (storedId == null || storedId.isEmpty) {
+          storedId = const Uuid().v4();
+          await _storage.write(key: 'device_id', value: storedId);
+        }
+        String? storedName = await _storage.read(key: 'device_name');
+        if (storedName == null || storedName.isEmpty) {
+          storedName = Platform.isAndroid
+              ? "Android Device"
+              : (Platform.isIOS ? "iOS Device" : "Generic Device");
+          await _storage.write(key: 'device_name', value: storedName);
+        }
+
+        final response = await refreshDio.post(
+          '/auth/refresh',
+          data: {
+            'refresh_token': refreshToken,
+            'device_id': storedId,
+            'device_name': storedName,
+          },
+        );
+
+        if (response.statusCode == 200 && response.data != null) {
+          final data = response.data as Map<String, dynamic>;
+          final newAccessToken = data['access_token'] as String;
+          final newRefreshToken = data['refresh_token'] as String;
+
+          await _storage.write(key: 'access_token', value: newAccessToken);
+          await _storage.write(key: 'refresh_token', value: newRefreshToken);
+
+          final completer = _refreshCompleter;
+          _refreshCompleter = null;
+          completer?.complete(newAccessToken);
+
+          final opts = err.requestOptions;
+          opts.headers['Authorization'] = 'Bearer $newAccessToken';
+          final cloneReq = await _dio.fetch(opts);
+          return handler.resolve(cloneReq);
+        } else {
+          throw Exception('Failed token refresh response');
+        }
+      } catch (e) {
+        logger.e('Token refresh failed: $e');
+        final completer = _refreshCompleter;
+        _refreshCompleter = null;
+        completer?.completeError(e);
+
+        await _storage.deleteAll();
+        AppRouter.router.go('/auth');
+        return super.onError(err, handler);
+      }
     }
     super.onError(err, handler);
   }

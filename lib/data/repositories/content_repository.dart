@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:logger/logger.dart';
 import 'package:hive/hive.dart';
 import '../../core/network/dio_client.dart';
 import '../models/content_model.dart';
@@ -22,6 +23,8 @@ abstract class ContentRepository {
 class RealContentRepository implements ContentRepository {
   final DioClient dioClient;
 
+  final Logger logger = Logger();
+
   RealContentRepository({required this.dioClient});
 
   Future<bool> _isKidsMode() async {
@@ -34,7 +37,9 @@ class RealContentRepository implements ContentRepository {
           return profile['isKids'] as bool? ?? false;
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      logger.e('Failed to check kids mode: $e');
+    }
     return false;
   }
 

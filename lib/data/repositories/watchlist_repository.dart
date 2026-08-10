@@ -1,4 +1,5 @@
 import 'package:hive_flutter/hive_flutter.dart';
+import 'package:logger/logger.dart';
 import '../../core/network/dio_client.dart';
 import '../models/content_model.dart';
 import '../mock/mock_data.dart';
@@ -50,6 +51,8 @@ class RealWatchlistRepository implements WatchlistRepository {
     return false;
   }
 
+  final Logger logger = Logger();
+
   Future<void> _syncWatchlistFromBackend() async {
     try {
       final kidsMode = await _isKidsMode();
@@ -70,7 +73,9 @@ class RealWatchlistRepository implements WatchlistRepository {
           }
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      logger.e('Failed to sync watchlist from backend: $e');
+    }
   }
 
   @override
@@ -79,18 +84,35 @@ class RealWatchlistRepository implements WatchlistRepository {
     await box.put(content.id, content);
 
     try {
-      await dioClient.post('/watchlist/${content.id}');
-    } catch (_) {}
+      final response = await dioClient.post('/watchlist/${content.id}');
+      if (response.statusCode != 200 && response.statusCode != 201) {
+        throw Exception('Server returned status ${response.statusCode}');
+      }
+    } catch (e) {
+      logger.e('Failed to sync watchlist add to backend: $e');
+      await box.delete(content.id);
+      rethrow;
+    }
   }
 
   @override
   Future<void> removeFromWatchlist(String contentId) async {
     final box = await _watchbox;
+    final cached = box.get(contentId);
     await box.delete(contentId);
 
     try {
-      await dioClient.dio.delete('/watchlist/$contentId');
-    } catch (_) {}
+      final response = await dioClient.dio.delete('/watchlist/$contentId');
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception('Server returned status ${response.statusCode}');
+      }
+    } catch (e) {
+      logger.e('Failed to sync watchlist remove from backend: $e');
+      if (cached != null) {
+        await box.put(contentId, cached);
+      }
+      rethrow;
+    }
   }
 
   @override
@@ -108,17 +130,29 @@ class RealWatchlistRepository implements WatchlistRepository {
   @override
   Future<void> addToContinueWatching(ContentModel content) async {
     final box = await _continueBox;
+    final cached = box.get(content.id);
     await box.put(content.id, content);
 
     try {
       final duration =
           content.durationSeconds ?? ((content.durationMinutes ?? 0) * 60);
       final posSeconds = ((content.progress ?? 0.0) * duration).toInt();
-      await dioClient.dio.put(
+      final response = await dioClient.dio.put(
         '/watch-progress/${content.id}',
         data: {'position_seconds': posSeconds},
       );
-    } catch (_) {}
+      if (response.statusCode != 200 && response.statusCode != 204) {
+        throw Exception('Server returned status ${response.statusCode}');
+      }
+    } catch (e) {
+      logger.e('Failed to sync watch progress to backend: $e');
+      if (cached != null) {
+        await box.put(content.id, cached);
+      } else {
+        await box.delete(content.id);
+      }
+      rethrow;
+    }
   }
 }
 

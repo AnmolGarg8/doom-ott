@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:lucide_icons/lucide_icons.dart';
@@ -143,15 +144,6 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   'Enter the 6-digit verification code sent to your phone number.',
                   style: TextStyle(color: AppColors.muted, fontSize: 14),
                 ),
-                const SizedBox(height: 8),
-                const Text(
-                  'Tip: Enter 111111 to test the intentional error flow state.',
-                  style: TextStyle(
-                    color: AppColors.primary,
-                    fontSize: 12,
-                    fontStyle: FontStyle.italic,
-                  ),
-                ),
                 const SizedBox(height: 40),
 
                 // 6 digits fields row
@@ -160,34 +152,46 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   children: List.generate(6, (index) {
                     return SizedBox(
                       width: 44,
-                      child: TextFormField(
+                      child: KeyboardListener(
                         focusNode: _focusNodes[index],
-                        controller: _controllers[index],
-                        enabled: !isLoading,
-                        keyboardType: TextInputType.number,
-                        textAlign: TextAlign.center,
-                        style: const TextStyle(
-                          fontSize: 20,
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                        ),
-                        maxLength: 1,
-                        decoration: const InputDecoration(
-                          counterText: '',
-                          contentPadding: EdgeInsets.symmetric(vertical: 8),
-                        ),
-                        onChanged: (value) {
-                          if (value.length == 1 && index < 5) {
-                            _focusNodes[index + 1].requestFocus();
-                          }
-                          if (value.isEmpty && index > 0) {
-                            _focusNodes[index - 1].requestFocus();
-                          }
-                          if (index == 5 && value.length == 1) {
-                            _focusNodes[index].unfocus();
-                            _verifyOtp();
+                        onKeyEvent: (KeyEvent event) {
+                          if (event is KeyDownEvent &&
+                              event.logicalKey == LogicalKeyboardKey.backspace) {
+                            if (_controllers[index].text.isEmpty && index > 0) {
+                              _controllers[index - 1].clear();
+                              _focusNodes[index - 1].requestFocus();
+                            }
                           }
                         },
+                        child: TextFormField(
+                          focusNode: _focusNodes[index],
+                          controller: _controllers[index],
+                          enabled: !isLoading,
+                          keyboardType: TextInputType.number,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 20,
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLength: 1,
+                          decoration: const InputDecoration(
+                            counterText: '',
+                            contentPadding: EdgeInsets.symmetric(vertical: 8),
+                          ),
+                          onChanged: (value) {
+                            if (value.length == 1 && index < 5) {
+                              _focusNodes[index + 1].requestFocus();
+                            }
+                            if (value.isEmpty && index > 0) {
+                              _focusNodes[index - 1].requestFocus();
+                            }
+                            if (index == 5 && value.length == 1) {
+                              _focusNodes[index].unfocus();
+                              _verifyOtp();
+                            }
+                          },
+                        ),
                       ),
                     );
                   }),

@@ -1,3 +1,4 @@
+import 'package:logger/logger.dart';
 import '../../core/network/dio_client.dart';
 
 class SubscriptionPlanModel {
@@ -121,6 +122,7 @@ abstract class SubscriptionRepository {
 
 class RealSubscriptionRepository implements SubscriptionRepository {
   final DioClient dioClient;
+  final Logger logger = Logger();
 
   RealSubscriptionRepository({required this.dioClient});
 
@@ -138,7 +140,8 @@ class RealSubscriptionRepository implements SubscriptionRepository {
         }
       }
       return plans;
-    } catch (_) {
+    } catch (e) {
+      logger.e('Failed to fetch subscription plans: $e');
       return [];
     }
   }

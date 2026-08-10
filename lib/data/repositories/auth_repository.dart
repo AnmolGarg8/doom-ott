@@ -383,11 +383,49 @@ class RealAuthRepository implements AuthRepository {
 
       final user = await getCurrentUser();
       if (user != null) {
-        final profileBox = await Hive.openBox<dynamic>('user_profiles');
-        final keys = profileBox.keys.where((k) => k != 'active_id').toList();
-        if (keys.isEmpty) {
+        List<dynamic> backendProfiles = [];
+        try {
+          final meResponse = await dioClient.get('/users/me');
+          if (meResponse.statusCode == 200 && meResponse.data != null) {
+            final meData = Map<String, dynamic>.from(meResponse.data as Map);
+            backendProfiles = meData['profiles'] as List? ?? [];
+          }
+        } catch (_) {}
+
+        if (backendProfiles.isEmpty) {
           throw ProfileSetupRequiredException(user);
         }
+
+        final profileBox = await Hive.openBox<dynamic>('user_profiles');
+        await profileBox.clear();
+        String? newActiveId;
+        for (final p in backendProfiles) {
+          final profileMap = Map<String, dynamic>.from(p as Map);
+          final pId = profileMap['id'] as String;
+          final pName = profileMap['name'] as String;
+          final avatarKey = profileMap['avatar_key'] as String? ?? 'avatar_1';
+          final isKids = profileMap['is_kids_profile'] as bool? ?? false;
+
+          int avatarIndex = 0;
+          final match = RegExp(r'\d+').firstMatch(avatarKey);
+          if (match != null) {
+            avatarIndex = int.parse(match.group(0)!);
+          }
+
+          await profileBox.put(pId, {
+            'id': pId,
+            'name': pName,
+            'avatarIndex': avatarIndex,
+            'isKids': isKids,
+          });
+
+          newActiveId ??= pId;
+        }
+
+        if (newActiveId != null) {
+          await profileBox.put('active_id', newActiveId);
+        }
+
         return user;
       }
       throw Exception('Failed to retrieve user profile after authentication');
