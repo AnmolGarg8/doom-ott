@@ -31,10 +31,30 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
   void initState() {
     super.initState();
     _startTimer();
+    HardwareKeyboard.instance.addHandler(_handleKeyEvent);
     // Auto focus first field
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNodes[0].requestFocus();
     });
+  }
+
+  bool _handleKeyEvent(KeyEvent event) {
+    if (event is! KeyDownEvent ||
+        event.logicalKey != LogicalKeyboardKey.backspace) {
+      return false;
+    }
+
+    for (int i = 0; i < 6; i++) {
+      if (_focusNodes[i].hasFocus) {
+        if (_controllers[i].text.isEmpty && i > 0) {
+          _controllers[i - 1].clear();
+          _focusNodes[i - 1].requestFocus();
+        }
+        break;
+      }
+    }
+
+    return false;
   }
 
   void _startTimer() {
@@ -54,6 +74,7 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
 
   @override
   void dispose() {
+    HardwareKeyboard.instance.removeHandler(_handleKeyEvent);
     _timer.cancel();
     for (var node in _focusNodes) {
       node.dispose();
@@ -152,46 +173,34 @@ class _OtpVerificationScreenState extends State<OtpVerificationScreen> {
                   children: List.generate(6, (index) {
                     return SizedBox(
                       width: 44,
-                      child: KeyboardListener(
+                      child: TextFormField(
                         focusNode: _focusNodes[index],
-                        onKeyEvent: (KeyEvent event) {
-                          if (event is KeyDownEvent &&
-                              event.logicalKey == LogicalKeyboardKey.backspace) {
-                            if (_controllers[index].text.isEmpty && index > 0) {
-                              _controllers[index - 1].clear();
-                              _focusNodes[index - 1].requestFocus();
-                            }
+                        controller: _controllers[index],
+                        enabled: !isLoading,
+                        keyboardType: TextInputType.number,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        maxLength: 1,
+                        decoration: const InputDecoration(
+                          counterText: '',
+                          contentPadding: EdgeInsets.symmetric(vertical: 8),
+                        ),
+                        onChanged: (value) {
+                          if (value.length == 1 && index < 5) {
+                            _focusNodes[index + 1].requestFocus();
+                          }
+                          if (value.isEmpty && index > 0) {
+                            _focusNodes[index - 1].requestFocus();
+                          }
+                          if (index == 5 && value.length == 1) {
+                            _focusNodes[index].unfocus();
+                            _verifyOtp();
                           }
                         },
-                        child: TextFormField(
-                          focusNode: _focusNodes[index],
-                          controller: _controllers[index],
-                          enabled: !isLoading,
-                          keyboardType: TextInputType.number,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 20,
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLength: 1,
-                          decoration: const InputDecoration(
-                            counterText: '',
-                            contentPadding: EdgeInsets.symmetric(vertical: 8),
-                          ),
-                          onChanged: (value) {
-                            if (value.length == 1 && index < 5) {
-                              _focusNodes[index + 1].requestFocus();
-                            }
-                            if (value.isEmpty && index > 0) {
-                              _focusNodes[index - 1].requestFocus();
-                            }
-                            if (index == 5 && value.length == 1) {
-                              _focusNodes[index].unfocus();
-                              _verifyOtp();
-                            }
-                          },
-                        ),
                       ),
                     );
                   }),
