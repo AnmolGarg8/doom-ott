@@ -15,17 +15,27 @@ class ContentDetailBloc extends Bloc<ContentDetailEvent, ContentDetailState> {
     LoadContentDetail event,
     Emitter<ContentDetailState> emit,
   ) async {
-    emit(ContentDetailLoading());
+    // 1. Instant First Paint: check cached content detail
+    final cached = await contentRepository.getCachedContentById(event.id);
+    if (cached != null) {
+      emit(ContentDetailLoaded(cached, similar: const []));
+    } else if (state is! ContentDetailLoaded) {
+      emit(ContentDetailLoading());
+    }
+
+    // 2. Fresh API call always kicked off right after (Stale-While-Revalidate)
     try {
       final content = await contentRepository.getContentById(event.id);
       if (content != null) {
         final similar = await contentRepository.getSimilarContent(event.id);
         emit(ContentDetailLoaded(content, similar: similar));
-      } else {
+      } else if (cached == null) {
         emit(ContentDetailError('Content not found'));
       }
     } catch (e) {
-      emit(ContentDetailError(e.toString()));
+      if (cached == null) {
+        emit(ContentDetailError(e.toString()));
+      }
     }
   }
 }

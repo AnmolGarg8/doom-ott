@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/colors.dart';
 import '../../core/theme/constants.dart';
 import '../../core/widgets/content_card.dart';
 import '../../core/widgets/loading_shimmer.dart';
-import '../../data/mock/mock_data.dart';
 import '../../data/models/content_model.dart';
+import '../../data/repositories/content_repository.dart';
 
 class BrowseScreen extends StatefulWidget {
   final String? initialGenre;
@@ -36,30 +37,47 @@ class _BrowseScreenState extends State<BrowseScreen> {
   void initState() {
     super.initState();
     _selectedGenre = widget.initialGenre ?? 'Action';
-    _applyFilter(initial: true);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _applyFilter(initial: true);
+    });
   }
 
-  Future<void> _applyFilter({bool initial = false}) async {
-    if (!initial) {
-      setState(() {
-        _isLoading = true;
-        _opacity = 0.0;
-      });
-      // Simulate API latency delay
-      await Future.delayed(const Duration(milliseconds: 400));
+  Future<void> _applyFilter({bool initial = false, bool forceRefresh = false}) async {
+    if (!mounted) return;
+    final repo = RepositoryProvider.of<ContentRepository>(context);
+
+    if (initial || !forceRefresh) {
+      final cached = await repo.getCachedContentByGenre(_selectedGenre);
+      if (cached.isNotEmpty && mounted) {
+        setState(() {
+          _filteredContent = cached;
+          _isLoading = false;
+          _opacity = 1.0;
+        });
+      } else if (mounted) {
+        setState(() {
+          _isLoading = true;
+          _opacity = 0.0;
+        });
+      }
     }
 
-    if (!mounted) return;
-
-    final results = MockData.allContent
-        .where((element) => element.genre.contains(_selectedGenre))
-        .toList();
-
-    setState(() {
-      _filteredContent = results;
-      _isLoading = false;
-      _opacity = 1.0;
-    });
+    try {
+      final results = await repo.getContentByGenre(_selectedGenre);
+      if (!mounted) return;
+      setState(() {
+        _filteredContent = results;
+        _isLoading = false;
+        _opacity = 1.0;
+      });
+    } catch (_) {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+          _opacity = 1.0;
+        });
+      }
+    }
   }
 
   @override
@@ -128,54 +146,67 @@ class _BrowseScreenState extends State<BrowseScreen> {
           ),
           const SizedBox(height: 8),
 
-          // Content Grid or Loading Shimmer
+          // Content Grid with Pull-to-Refresh
           Expanded(
-            child: _isLoading
-                ? GridView.builder(
-                    padding: const EdgeInsets.all(16),
-                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                      crossAxisCount: crossAxisCount,
-                      childAspectRatio: 2 / 3,
-                      crossAxisSpacing: 12,
-                      mainAxisSpacing: 12,
-                    ),
-                    itemCount: 6,
-                    itemBuilder: (context, index) => const LoadingShimmer(
-                      width: double.infinity,
-                      height: double.infinity,
-                      borderRadius: AppThemeConstants.radiusCard,
-                    ),
-                  )
-                : AnimatedOpacity(
-                    opacity: _opacity,
-                    duration: const Duration(milliseconds: 300),
-                    child: _filteredContent.isEmpty
-                        ? const Center(
-                            child: Text(
-                              'No content found for this genre.',
-                              style: TextStyle(color: AppColors.muted),
-                            ),
-                          )
-                        : GridView.builder(
-                            padding: const EdgeInsets.all(16),
-                            gridDelegate:
-                                SliverGridDelegateWithFixedCrossAxisCount(
-                                  crossAxisCount: crossAxisCount,
-                                  childAspectRatio: 2 / 3,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
+            child: RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: () async {
+                await _applyFilter(forceRefresh: true);
+              },
+              child: _isLoading
+                  ? GridView.builder(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: crossAxisCount,
+                        childAspectRatio: 2 / 3,
+                        crossAxisSpacing: 12,
+                        mainAxisSpacing: 12,
+                      ),
+                      itemCount: 6,
+                      itemBuilder: (context, index) => const LoadingShimmer(
+                        width: double.infinity,
+                        height: double.infinity,
+                        borderRadius: AppThemeConstants.radiusCard,
+                      ),
+                    )
+                  : AnimatedOpacity(
+                      opacity: _opacity,
+                      duration: const Duration(milliseconds: 300),
+                      child: _filteredContent.isEmpty
+                          ? SingleChildScrollView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              child: Container(
+                                height: 300,
+                                alignment: Alignment.center,
+                                child: const Text(
+                                  'No content found for this genre.',
+                                  style: TextStyle(color: AppColors.muted),
                                 ),
-                            itemCount: _filteredContent.length,
-                            itemBuilder: (context, index) {
-                              final item = _filteredContent[index];
-                              return ContentCard(
-                                content: item,
-                                onTap: () =>
-                                    context.push('/content-detail/${item.id}'),
-                              );
-                            },
-                          ),
-                  ),
+                              ),
+                            )
+                          : GridView.builder(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: const EdgeInsets.all(16),
+                              gridDelegate:
+                                  SliverGridDelegateWithFixedCrossAxisCount(
+                                    crossAxisCount: crossAxisCount,
+                                    childAspectRatio: 2 / 3,
+                                    crossAxisSpacing: 12,
+                                    mainAxisSpacing: 12,
+                                  ),
+                              itemCount: _filteredContent.length,
+                              itemBuilder: (context, index) {
+                                final item = _filteredContent[index];
+                                return ContentCard(
+                                  content: item,
+                                  onTap: () =>
+                                      context.push('/content-detail/${item.id}'),
+                                );
+                              },
+                            ),
+                    ),
+            ),
           ),
         ],
       ),

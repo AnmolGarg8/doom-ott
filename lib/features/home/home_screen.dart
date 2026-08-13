@@ -24,18 +24,39 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends State<HomeScreen> with WidgetsBindingObserver {
   final ScrollController _scrollController = ScrollController();
   late PageController _heroPageController;
   Timer? _heroTimer;
   int _currentHeroPage = 0;
+  DateTime? _lastFetchedTime;
 
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _heroPageController = PageController(initialPage: 0);
-    context.read<ContentBloc>().add(LoadHomeContent());
+    _fetchHomeContent();
     _startHeroAutoScroll();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      if (_lastFetchedTime != null) {
+        final timeAway = DateTime.now().difference(_lastFetchedTime!);
+        if (timeAway >= const Duration(minutes: 2)) {
+          _fetchHomeContent();
+        }
+      } else {
+        _fetchHomeContent();
+      }
+    }
+  }
+
+  void _fetchHomeContent() {
+    _lastFetchedTime = DateTime.now();
+    context.read<ContentBloc>().add(LoadHomeContent());
   }
 
   void _startHeroAutoScroll() {
@@ -55,6 +76,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _scrollController.dispose();
     _heroPageController.dispose();
     _heroTimer?.cancel();
@@ -80,9 +102,10 @@ class _HomeScreenState extends State<HomeScreen> {
                 RefreshIndicator(
                   color: AppColors.primary,
                   onRefresh: () async {
-                    context.read<ContentBloc>().add(LoadHomeContent());
+                    _fetchHomeContent();
                   },
                   child: SingleChildScrollView(
+                    physics: const AlwaysScrollableScrollPhysics(),
                     controller: _scrollController,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,

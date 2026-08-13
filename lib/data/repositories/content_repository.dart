@@ -18,6 +18,15 @@ abstract class ContentRepository {
   Future<List<ContentModel>> getContentByGenre(String genre);
   Future<List<String>> getCategories();
   Future<String> getPlaybackUrl(String id);
+
+  // Cached methods for instant-first-paint
+  Future<List<ContentModel>> getCachedFeaturedContent();
+  Future<List<ContentModel>> getCachedTrendingContent();
+  Future<List<ContentModel>> getCachedMovies();
+  Future<List<ContentModel>> getCachedTVShows();
+  Future<List<ContentModel>> getCachedShorts();
+  Future<ContentModel?> getCachedContentById(String id);
+  Future<List<ContentModel>> getCachedContentByGenre(String genre);
 }
 
 class RealContentRepository implements ContentRepository {
@@ -26,6 +35,77 @@ class RealContentRepository implements ContentRepository {
   final Logger logger = Logger();
 
   RealContentRepository({required this.dioClient});
+
+  Future<Box<dynamic>> get _contentCacheBox =>
+      Hive.openBox<dynamic>('content_cache');
+
+  Future<void> _saveCache(String key, List<ContentModel> items) async {
+    try {
+      final box = await _contentCacheBox;
+      await box.put(key, items.map((e) => e.toJson()).toList());
+    } catch (e) {
+      logger.e('Failed to save cache for $key: $e');
+    }
+  }
+
+  Future<List<ContentModel>> _getCacheList(String key) async {
+    try {
+      final box = await _contentCacheBox;
+      final raw = box.get(key) as List?;
+      if (raw != null) {
+        return raw
+            .map((e) => ContentModel.fromJson(Map<String, dynamic>.from(e as Map)))
+            .toList();
+      }
+    } catch (e) {
+      logger.e('Failed to read cache for $key: $e');
+    }
+    return [];
+  }
+
+  Future<void> _saveSingleCache(String key, ContentModel item) async {
+    try {
+      final box = await _contentCacheBox;
+      await box.put(key, item.toJson());
+    } catch (e) {
+      logger.e('Failed to save single cache for $key: $e');
+    }
+  }
+
+  Future<ContentModel?> _getSingleCache(String key) async {
+    try {
+      final box = await _contentCacheBox;
+      final raw = box.get(key) as Map?;
+      if (raw != null) {
+        return ContentModel.fromJson(Map<String, dynamic>.from(raw));
+      }
+    } catch (e) {
+      logger.e('Failed to read single cache for $key: $e');
+    }
+    return null;
+  }
+
+  @override
+  Future<List<ContentModel>> getCachedFeaturedContent() => _getCacheList('featured');
+
+  @override
+  Future<List<ContentModel>> getCachedTrendingContent() => _getCacheList('trending');
+
+  @override
+  Future<List<ContentModel>> getCachedMovies() => _getCacheList('movies');
+
+  @override
+  Future<List<ContentModel>> getCachedTVShows() => _getCacheList('tv_shows');
+
+  @override
+  Future<List<ContentModel>> getCachedShorts() => _getCacheList('shorts');
+
+  @override
+  Future<ContentModel?> getCachedContentById(String id) => _getSingleCache('content_$id');
+
+  @override
+  Future<List<ContentModel>> getCachedContentByGenre(String genre) =>
+      _getCacheList('genre_$genre');
 
   Future<bool> _isKidsMode() async {
     try {
@@ -60,14 +140,15 @@ class RealContentRepository implements ContentRepository {
         queryParameters: await _buildQueryParams({'page': 1, 'page_size': 10}),
       );
       if (response.statusCode == 200 && response.data != null) {
-        final items = response.data['items'] as List;
-        return items
+        final items = (response.data['items'] as List)
             .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
             .toList();
+        await _saveCache('featured', items);
+        return items;
       }
-      return [];
+      return await getCachedFeaturedContent();
     } catch (e) {
-      return [];
+      return await getCachedFeaturedContent();
     }
   }
 
@@ -79,14 +160,15 @@ class RealContentRepository implements ContentRepository {
         queryParameters: await _buildQueryParams({'page': 1, 'page_size': 10}),
       );
       if (response.statusCode == 200 && response.data != null) {
-        final items = response.data['items'] as List;
-        return items
+        final items = (response.data['items'] as List)
             .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
             .toList();
+        await _saveCache('trending', items);
+        return items;
       }
-      return [];
+      return await getCachedTrendingContent();
     } catch (e) {
-      return [];
+      return await getCachedTrendingContent();
     }
   }
 
@@ -157,14 +239,15 @@ class RealContentRepository implements ContentRepository {
         queryParameters: await _buildQueryParams({'type': 'movie', 'page': 1, 'page_size': 20}),
       );
       if (response.statusCode == 200 && response.data != null) {
-        final items = response.data['items'] as List;
-        return items
+        final items = (response.data['items'] as List)
             .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
             .toList();
+        await _saveCache('movies', items);
+        return items;
       }
-      return [];
+      return await getCachedMovies();
     } catch (e) {
-      return [];
+      return await getCachedMovies();
     }
   }
 
@@ -176,14 +259,15 @@ class RealContentRepository implements ContentRepository {
         queryParameters: await _buildQueryParams({'type': 'series', 'page': 1, 'page_size': 20}),
       );
       if (response.statusCode == 200 && response.data != null) {
-        final items = response.data['items'] as List;
-        return items
+        final items = (response.data['items'] as List)
             .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
             .toList();
+        await _saveCache('tv_shows', items);
+        return items;
       }
-      return [];
+      return await getCachedTVShows();
     } catch (e) {
-      return [];
+      return await getCachedTVShows();
     }
   }
 
@@ -195,14 +279,15 @@ class RealContentRepository implements ContentRepository {
         queryParameters: await _buildQueryParams({'type': 'short', 'page': 1, 'page_size': 20}),
       );
       if (response.statusCode == 200 && response.data != null) {
-        final items = response.data['items'] as List;
-        return items
+        final items = (response.data['items'] as List)
             .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
             .toList();
+        await _saveCache('shorts', items);
+        return items;
       }
-      return [];
+      return await getCachedShorts();
     } catch (e) {
-      return [];
+      return await getCachedShorts();
     }
   }
 
@@ -214,9 +299,11 @@ class RealContentRepository implements ContentRepository {
         queryParameters: await _buildQueryParams({}),
       );
       if (response.statusCode == 200 && response.data != null) {
-        return ContentModel.fromJson(response.data as Map<String, dynamic>);
+        final content = ContentModel.fromJson(response.data as Map<String, dynamic>);
+        await _saveSingleCache('content_$id', content);
+        return content;
       }
-      return null;
+      return await getCachedContentById(id);
     } on DioException catch (e) {
       if (e.response?.statusCode == 403) {
         throw Exception("This title isn't available in Kids Mode");
@@ -226,6 +313,8 @@ class RealContentRepository implements ContentRepository {
           : e.message;
       throw Exception(detail ?? 'Failed to fetch content details');
     } catch (e) {
+      final cached = await getCachedContentById(id);
+      if (cached != null) return cached;
       rethrow;
     }
   }
@@ -277,14 +366,15 @@ class RealContentRepository implements ContentRepository {
         queryParameters: await _buildQueryParams({'genre': genre, 'page': 1, 'page_size': 20}),
       );
       if (response.statusCode == 200 && response.data != null) {
-        final items = response.data['items'] as List;
-        return items
+        final items = (response.data['items'] as List)
             .map((e) => ContentModel.fromJson(e as Map<String, dynamic>))
             .toList();
+        await _saveCache('genre_$genre', items);
+        return items;
       }
-      return [];
+      return await getCachedContentByGenre(genre);
     } catch (e) {
-      return [];
+      return await getCachedContentByGenre(genre);
     }
   }
 
@@ -320,6 +410,20 @@ class RealContentRepository implements ContentRepository {
 }
 
 class MockContentRepository implements ContentRepository {
+  @override
+  Future<List<ContentModel>> getCachedFeaturedContent() async => [];
+  @override
+  Future<List<ContentModel>> getCachedTrendingContent() async => [];
+  @override
+  Future<List<ContentModel>> getCachedMovies() async => [];
+  @override
+  Future<List<ContentModel>> getCachedTVShows() async => [];
+  @override
+  Future<List<ContentModel>> getCachedShorts() async => [];
+  @override
+  Future<ContentModel?> getCachedContentById(String id) async => null;
+  @override
+  Future<List<ContentModel>> getCachedContentByGenre(String genre) async => [];
   @override
   Future<List<ContentModel>> getFeaturedContent() async {
     await Future.delayed(const Duration(milliseconds: 600));

@@ -138,50 +138,59 @@ class _ContentDetailScreenState extends State<ContentDetailScreen> {
 
             final similarContent = state.similar;
 
-            return SingleChildScrollView(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  // 1. Backdrop image with gradients and text overlays
-                  _buildBackdropHeader(content),
+            return RefreshIndicator(
+              color: AppColors.primary,
+              onRefresh: () async {
+                context.read<ContentDetailBloc>().add(
+                      LoadContentDetail(widget.contentId),
+                    );
+              },
+              child: SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    // 1. Backdrop image with gradients and text overlays
+                    _buildBackdropHeader(content),
 
-                  Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 16.0,
-                      vertical: 20.0,
+                    Padding(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 16.0,
+                        vertical: 20.0,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // 2. Action row
+                          _buildActionRow(content),
+                          const SizedBox(height: 24),
+
+                          // 3. Synopsis expandable text
+                          _buildSynopsisSection(content),
+                          const SizedBox(height: 24),
+
+                          // 4. Cast Section
+                          _buildCastSection(),
+                          const SizedBox(height: 24),
+
+                          // Reviews section
+                          _buildReviewsSection(content),
+                          const SizedBox(height: 24),
+
+                          // 5. Episode List (only if type == series)
+                          if (content.type == 'series')
+                            _buildEpisodesSection(content),
+
+                          // 6. More Like This Section
+                          if (similarContent.isNotEmpty)
+                            _buildSimilarSection(similarContent),
+
+                          const SizedBox(height: 60),
+                        ],
+                      ),
                     ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        // 2. Action row
-                        _buildActionRow(content),
-                        const SizedBox(height: 24),
-
-                        // 3. Synopsis expandable text
-                        _buildSynopsisSection(content),
-                        const SizedBox(height: 24),
-
-                        // 4. Cast Section
-                        _buildCastSection(),
-                        const SizedBox(height: 24),
-
-                        // Reviews section
-                        _buildReviewsSection(content),
-                        const SizedBox(height: 24),
-
-                        // 5. Episode List (only if type == series)
-                        if (content.type == 'series')
-                          _buildEpisodesSection(content),
-
-                        // 6. More Like This Section
-                        if (similarContent.isNotEmpty)
-                          _buildSimilarSection(similarContent),
-
-                        const SizedBox(height: 60),
-                      ],
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             );
           } else if (state is ContentDetailError) {
